@@ -1,0 +1,97 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "健康追踪"
+      }
+    },
+    {
+      "path": "pages/onboarding/index",
+      "style": {
+        "navigationBarTitleText": "基本信息录入"
+      }
+    },
+    {
+      "path": "pages/habit/index",
+      "style": {
+        "navigationBarTitleText": "习惯录入"
+      }
+    },
+    {
+      "path": "pages/metrics/index",
+      "style": {
+        "navigationBarTitleText": "指标打卡"
+      }
+    },
+    {
+      "path": "pages/metrics/record",
+      "style": {
+        "navigationBarTitleText": "记录指标"
+      }
+    },
+    {
+      "path": "pages/analysis/index",
+      "style": {
+        "navigationBarTitleText": "AI 分析"
+      }
+    },
+    {
+      "path": "pages/report/index",
+      "style": {
+        "navigationBarTitleText": "体检报告"
+      }
+    },
+    {
+      "path": "pages/report/result",
+      "style": {
+        "navigationBarTitleText": "分析结果"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "我的资料"
+      }
+    },
+    {
+      "path": "pages/history/index",
+      "style": {
+        "navigationBarTitleText": "历史记录"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "健康追踪",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#07C160",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/habit/index",
+        "text": "习惯"
+      },
+      {
+        "pagePath": "pages/metrics/index",
+        "text": "指标"
+      },
+      {
+        "pagePath": "pages/analysis/index",
+        "text": "AI"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
+    ]
+  }
+}
