@@ -1,17 +1,25 @@
 <template>
-  <view class="history">
+  <view class="history-page">
     <view v-if="habitStore.history.length === 0" class="empty">
+      <view class="empty-icon-wrap">
+        <text class="empty-icon">📅</text>
+      </view>
       <text class="empty-text">暂无历史记录</text>
     </view>
-    <view v-else class="list">
-      <view v-for="item in habitStore.history" :key="item.date" class="history-item" @tap="showDetail(item)">
-        <view class="item-header">
-          <text class="item-date">{{ item.date }}</text>
-          <text class="item-arrow">></text>
+
+    <view v-else class="history-list">
+      <view v-for="item in habitStore.history" :key="item.date" class="history-card" @tap="showDetail(item)">
+        <view class="card-date-row">
+          <text class="card-date">{{ item.date }}</text>
+          <text class="card-arrow">›</text>
         </view>
-        <view class="item-summary">
-          <text v-if="item.sleep_time">睡眠 {{ item.sleep_time }}~{{ item.wake_time }}</text>
-          <text v-if="item.exercise_type">{{ item.exercise_type }} {{ item.exercise_duration }}分钟</text>
+        <view class="card-tags">
+          <view v-if="item.sleep_time" class="tag">
+            <text class="tag-text">睡眠 {{ item.sleep_time }}~{{ item.wake_time }}</text>
+          </view>
+          <view v-if="item.exercise_type" class="tag">
+            <text class="tag-text">{{ item.exercise_type }} {{ item.exercise_duration }}分钟</text>
+          </view>
         </view>
       </view>
     </view>
@@ -24,13 +32,10 @@ import { useHabitStore } from '../../stores/habit'
 
 const habitStore = useHabitStore()
 
-onMounted(() => {
-  habitStore.fetchHistory()
-})
+onMounted(() => { habitStore.fetchHistory() })
 
 function showDetail(item: any) {
   const lines = [
-    `日期: ${item.date}`,
     item.sleep_time ? `睡眠: ${item.sleep_time} ~ ${item.wake_time}` : '',
     item.nap_duration ? `午休: ${item.nap_duration}分钟` : '',
     item.work_type ? `工作: ${item.work_type}` : '',
@@ -41,63 +46,84 @@ function showDetail(item: any) {
     item.steps ? `步数: ${item.steps}` : '',
   ].filter(Boolean).join('\n')
 
-  uni.showModal({
-    title: item.date,
-    content: lines,
-    showCancel: false,
-  })
+  uni.showModal({ title: item.date, content: lines, showCancel: false })
 }
 </script>
 
 <style scoped>
-.history {
+.history-page {
   padding: 20rpx 30rpx;
   min-height: 100vh;
+  background: #FAF7F2;
 }
 
 .empty {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  height: 400rpx;
+  padding-top: 150rpx;
+}
+
+.empty-icon-wrap {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 28rpx;
+  background: #F5F0E8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20rpx;
+}
+
+.empty-icon {
+  font-size: 48rpx;
 }
 
 .empty-text {
-  color: #999;
   font-size: 28rpx;
+  color: #8B8680;
 }
 
-.history-item {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
+.history-card {
+  background: #FFFDF9;
+  border-radius: 24rpx;
+  padding: 28rpx;
   margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(45, 42, 38, 0.04);
 }
 
-.item-header {
+.card-date-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.item-date {
-  font-size: 30rpx;
+.card-date {
+  font-size: 28rpx;
   font-weight: 600;
-  color: #333;
+  color: #2D2A26;
 }
 
-.item-arrow {
-  color: #ccc;
+.card-arrow {
+  font-size: 32rpx;
+  color: #D4CFC7;
 }
 
-.item-summary {
-  margin-top: 12rpx;
+.card-tags {
   display: flex;
-  gap: 20rpx;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-top: 14rpx;
 }
 
-.item-summary text {
-  font-size: 26rpx;
-  color: #666;
+.tag {
+  background: #F5F0E8;
+  padding: 6rpx 16rpx;
+  border-radius: 10rpx;
+}
+
+.tag-text {
+  font-size: 22rpx;
+  color: #5A5650;
 }
 </style>

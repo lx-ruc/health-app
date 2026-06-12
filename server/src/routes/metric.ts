@@ -41,7 +41,7 @@ export async function metricRoutes(app: FastifyInstance) {
       params.push(metricKey)
     }
 
-    query += ' AND recorded_at >= datetime("now", ?) ORDER BY recorded_at DESC'
+    query += " AND recorded_at >= datetime('now', ?) ORDER BY recorded_at DESC"
     params.push(`-${dayCount} days`)
 
     return db.prepare(query).all(...params)

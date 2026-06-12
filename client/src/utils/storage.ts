@@ -62,3 +62,13 @@ export function setOnboardingStep(step: number) {
 export function hasCompletedOnboarding(): boolean {
   return !!uni.getStorageSync(USER_PROFILE_KEY)
 }
+
+const GUIDE_DONE_KEY = 'health_guide_done'
+
+export function hasDoneGuide(): boolean {
+  return !!uni.getStorageSync(GUIDE_DONE_KEY)
+}
+
+export function setGuideDone() {
+  uni.setStorageSync(GUIDE_DONE_KEY, true)
+}

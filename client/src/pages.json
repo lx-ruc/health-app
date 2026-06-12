@@ -3,13 +3,15 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "健康追踪"
+        "navigationBarTitleText": "健康追踪",
+        "navigationStyle": "custom"
       }
     },
     {
       "path": "pages/onboarding/index",
       "style": {
-        "navigationBarTitleText": "基本信息录入"
+        "navigationBarTitleText": "基本信息录入",
+        "navigationStyle": "custom"
       }
     },
     {
@@ -33,7 +35,8 @@
     {
       "path": "pages/analysis/index",
       "style": {
-        "navigationBarTitleText": "AI 分析"
+        "navigationBarTitleText": "AI 分析",
+        "navigationStyle": "custom"
       }
     },
     {
@@ -64,33 +67,44 @@
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "健康追踪",
-    "navigationBarBackgroundColor": "#F8F8F8",
-    "backgroundColor": "#F8F8F8"
+    "navigationBarBackgroundColor": "#FAF7F2",
+    "backgroundColor": "#FAF7F2"
   },
   "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#07C160",
-    "backgroundColor": "#ffffff",
+    "color": "#8B8680",
+    "selectedColor": "#4A6741",
+    "backgroundColor": "#FFFDF9",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页"
+        "text": "首页",
+        "iconPath": "static/tabbar/home.png",
+        "selectedIconPath": "static/tabbar/home_active.png"
       },
       {
         "pagePath": "pages/habit/index",
-        "text": "习惯"
+        "text": "记录",
+        "iconPath": "static/tabbar/habit.png",
+        "selectedIconPath": "static/tabbar/habit_active.png"
       },
       {
         "pagePath": "pages/metrics/index",
-        "text": "指标"
+        "text": "指标",
+        "iconPath": "static/tabbar/chart.png",
+        "selectedIconPath": "static/tabbar/chart_active.png"
       },
       {
         "pagePath": "pages/analysis/index",
-        "text": "AI"
+        "text": "AI",
+        "iconPath": "static/tabbar/ai.png",
+        "selectedIconPath": "static/tabbar/ai_active.png"
       },
       {
         "pagePath": "pages/profile/index",
-        "text": "我的"
+        "text": "我的",
+        "iconPath": "static/tabbar/user.png",
+        "selectedIconPath": "static/tabbar/user_active.png"
       }
     ]
   }

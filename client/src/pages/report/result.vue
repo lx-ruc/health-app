@@ -1,24 +1,43 @@
 <template>
   <view class="result-page">
     <view class="section">
-      <text class="section-title">OCR 识别结果</text>
+      <view class="section-header">
+        <view class="section-dot" />
+        <text class="section-title">OCR 识别结果</text>
+      </view>
       <text class="ocr-text" selectable>{{ ocrText }}</text>
     </view>
 
     <view class="section">
-      <text class="section-title">异常指标分析</text>
+      <view class="section-header">
+        <view class="section-dot dot-alert" />
+        <text class="section-title">异常指标分析</text>
+      </view>
       <view v-if="abnormalItems.length > 0" class="abnormal-list">
         <view v-for="(item, idx) in abnormalItems" :key="idx" class="abnormal-card" @tap="toggleExpand(idx)">
-          <view class="card-header">
+          <view class="card-top">
+            <view class="card-indicator" />
             <text class="card-name">{{ item.name }}</text>
             <text class="card-value">{{ item.value }}</text>
-            <text class="card-expand">{{ expanded[idx] ? '收起' : '展开' }}</text>
+            <text class="card-toggle">{{ expanded[idx] ? '收起' : '详情' }}</text>
           </view>
-          <view v-if="expanded[idx]" class="card-detail">
-            <text class="detail-row">参考范围: {{ item.reference }}</text>
-            <text class="detail-row">偏离程度: {{ item.deviation }}</text>
-            <text class="detail-row">健康影响: {{ item.impact }}</text>
-            <text class="detail-row suggestion">建议: {{ item.suggestion }}</text>
+          <view v-if="expanded[idx]" class="card-body">
+            <view class="body-row">
+              <text class="body-label">参考范围</text>
+              <text class="body-val">{{ item.reference }}</text>
+            </view>
+            <view class="body-row">
+              <text class="body-label">偏离程度</text>
+              <text class="body-val">{{ item.deviation }}</text>
+            </view>
+            <view class="body-row">
+              <text class="body-label">健康影响</text>
+              <text class="body-val">{{ item.impact }}</text>
+            </view>
+            <view class="body-row highlight">
+              <text class="body-label">建议</text>
+              <text class="body-val">{{ item.suggestion }}</text>
+            </view>
           </view>
         </view>
       </view>
@@ -39,15 +58,10 @@ const expanded = ref<Record<number, boolean>>({})
 onLoad((query) => {
   ocrText.value = decodeURIComponent(query?.ocrText || '')
   analysis.value = decodeURIComponent(query?.analysis || '')
-
   try {
     const parsed = JSON.parse(analysis.value)
-    if (parsed.abnormal) {
-      abnormalItems.value = parsed.abnormal
-    }
-  } catch {
-    // analysis is not JSON, show raw text
-  }
+    if (parsed.abnormal) abnormalItems.value = parsed.abnormal
+  } catch {}
 })
 
 function toggleExpand(idx: number) {
@@ -59,81 +73,125 @@ function toggleExpand(idx: number) {
 .result-page {
   padding: 20rpx 30rpx;
   min-height: 100vh;
+  background: #FAF7F2;
 }
 
 .section {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
+  background: #FFFDF9;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(45, 42, 38, 0.04);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
   margin-bottom: 20rpx;
 }
 
+.section-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: #8B9E7E;
+  margin-right: 12rpx;
+}
+
+.section-dot.dot-alert {
+  background: #C8785C;
+}
+
 .section-title {
-  font-size: 30rpx;
+  font-size: 28rpx;
   font-weight: 600;
-  color: #333;
-  display: block;
-  margin-bottom: 16rpx;
+  color: #2D2A26;
 }
 
 .ocr-text {
   font-size: 26rpx;
-  color: #666;
-  line-height: 1.6;
+  color: #5A5650;
+  line-height: 1.7;
   white-space: pre-wrap;
 }
 
 .abnormal-card {
-  border: 1rpx solid #f0f0f0;
-  border-radius: 12rpx;
-  padding: 20rpx;
-  margin-bottom: 16rpx;
+  background: #FAF7F2;
+  border-radius: 16rpx;
+  padding: 22rpx;
+  margin-bottom: 14rpx;
+  border: 1rpx solid #EDE8DF;
 }
 
-.card-header {
+.card-top {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: 12rpx;
+}
+
+.card-indicator {
+  width: 8rpx;
+  height: 28rpx;
+  border-radius: 4rpx;
+  background: #C8785C;
 }
 
 .card-name {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #e53935;
   flex: 1;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #C8785C;
 }
 
 .card-value {
-  font-size: 28rpx;
-  color: #333;
-}
-
-.card-expand {
-  font-size: 24rpx;
-  color: #07C160;
-}
-
-.card-detail {
-  margin-top: 16rpx;
-  padding-top: 16rpx;
-  border-top: 1rpx solid #f0f0f0;
-}
-
-.detail-row {
-  display: block;
   font-size: 26rpx;
-  color: #666;
-  line-height: 1.8;
+  color: #2D2A26;
+  font-weight: 500;
 }
 
-.detail-row.suggestion {
-  color: #07C160;
+.card-toggle {
+  font-size: 22rpx;
+  color: #4A6741;
+  padding: 4rpx 14rpx;
+  background: rgba(74, 103, 65, 0.1);
+  border-radius: 12rpx;
+}
+
+.card-body {
+  margin-top: 18rpx;
+  padding-top: 18rpx;
+  border-top: 1rpx solid #EDE8DF;
+}
+
+.body-row {
+  display: flex;
+  margin-bottom: 10rpx;
+}
+
+.body-row:last-child {
+  margin-bottom: 0;
+}
+
+.body-row.highlight .body-val {
+  color: #4A6741;
+}
+
+.body-label {
+  font-size: 24rpx;
+  color: #8B8680;
+  min-width: 120rpx;
+}
+
+.body-val {
+  font-size: 24rpx;
+  color: #5A5650;
+  flex: 1;
 }
 
 .raw-analysis {
   font-size: 26rpx;
-  color: #666;
-  line-height: 1.6;
+  color: #5A5650;
+  line-height: 1.7;
   white-space: pre-wrap;
 }
 </style>
