@@ -2,7 +2,7 @@
   <view class="profile-page">
     <view class="profile-header">
       <view class="avatar-circle">
-        <text class="avatar-text">{{ profile.gender === '男' ? '♂' : '♀' }}</text>
+        <image class="icon-svg-avatar" :src="getIcon(profile.gender === '男' ? 'male' : 'female', '#4A6741')" mode="aspectFit" />
       </view>
       <text class="profile-name">{{ profile.occupation || '未设置' }}</text>
       <text class="profile-sub">{{ profile.ageRange || '未填写' }} · {{ profile.heightRange || '--' }}</text>
@@ -40,6 +40,7 @@
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '../../stores/user'
 import { GENDER_OPTIONS, AGE_OPTIONS, OCCUPATION_OPTIONS, DISEASE_OPTIONS } from '../../utils/constants'
+import { getIcon } from '../../utils/icons'
 
 const userStore = useUserStore()
 const profile = ref<any>({ ...userStore.profile })
@@ -56,12 +57,6 @@ const fields = [
   { key: 'occupation', label: '职业', options: [...OCCUPATION_OPTIONS] },
   { key: 'diseases', label: '病史', options: [...DISEASE_OPTIONS], multiple: true },
 ]
-
-function generateRange(min: number, max: number, step: number): string[] {
-  const result: string[] = []
-  for (let i = min; i <= max; i += step) result.push(`${i}`)
-  return result
-}
 
 function onPickerChange(key: string, e: any) {
   const idx = e.detail.value
@@ -118,9 +113,7 @@ async function save() {
   margin-bottom: 16rpx;
 }
 
-.avatar-text {
-  font-size: 48rpx;
-}
+.icon-svg-avatar { width: 48rpx; height: 48rpx; }
 
 .profile-name {
   font-size: 34rpx;

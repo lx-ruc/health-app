@@ -3,7 +3,7 @@
     <!-- Metrics tracking -->
     <view v-if="metricStore.selectedMetrics.length === 0" class="empty">
       <view class="empty-icon-wrap">
-        <text class="empty-icon">♥</text>
+        <image class="icon-svg-lg" :src="getIcon('heart', '#C8785C')" mode="aspectFit" />
       </view>
       <text class="empty-title">开始追踪你的健康指标</text>
       <text class="empty-desc">选择想要记录的指标，持续追踪变化趋势</text>
@@ -34,7 +34,7 @@
 
       <view class="tool-card" @tap="goAnalysis">
         <view class="tool-icon-wrap wrap-ai">
-          <text class="tool-icon">✨</text>
+          <image class="icon-svg" :src="getIcon('sparkle')" mode="aspectFit" />
         </view>
         <view class="tool-body">
           <text class="tool-name">AI 健康分析</text>
@@ -45,7 +45,7 @@
 
       <view class="tool-card" @tap="goReport">
         <view class="tool-icon-wrap wrap-report">
-          <text class="tool-icon">📄</text>
+          <image class="icon-svg" :src="getIcon('fileText', '#C8785C')" mode="aspectFit" />
         </view>
         <view class="tool-body">
           <text class="tool-name">体检报告</text>
@@ -56,7 +56,7 @@
 
       <view class="tool-card" @tap="goHistory">
         <view class="tool-icon-wrap wrap-history">
-          <text class="tool-icon">📅</text>
+          <image class="icon-svg" :src="getIcon('calendar', '#6B7E9A')" mode="aspectFit" />
         </view>
         <view class="tool-body">
           <text class="tool-name">历史数据</text>
@@ -72,6 +72,7 @@
 import { computed, onMounted } from 'vue'
 import { useMetricStore } from '../../stores/metric'
 import { METRIC_OPTIONS } from '../../utils/constants'
+import { getIcon } from '../../utils/icons'
 
 const metricStore = useMetricStore()
 
@@ -114,7 +115,7 @@ function goHistory() { uni.navigateTo({ url: '/pages/history/index' }) }
 
 .empty { display: flex; flex-direction: column; align-items: center; padding-top: 120rpx; }
 .empty-icon-wrap { width: 120rpx; height: 120rpx; border-radius: 36rpx; background: rgba(200,120,92,0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 30rpx; }
-.empty-icon { font-size: 52rpx; }
+.icon-svg-lg { width: 44rpx; height: 44rpx; }
 .empty-title { font-size: 32rpx; font-weight: 600; color: #2D2A26; margin-bottom: 10rpx; }
 .empty-desc { font-size: 26rpx; color: #8B8680; margin-bottom: 40rpx; }
 .empty-btn { background: #4A6741; padding: 20rpx 60rpx; border-radius: 24rpx; }
@@ -157,7 +158,7 @@ function goHistory() { uni.navigateTo({ url: '/pages/history/index' }) }
 .wrap-ai { background: rgba(74,103,65,0.1); }
 .wrap-report { background: rgba(200,120,92,0.1); }
 .wrap-history { background: rgba(107,126,154,0.1); }
-.tool-icon { font-size: 32rpx; }
+.icon-svg { width: 28rpx; height: 28rpx; }
 .tool-body { flex: 1; }
 .tool-name { display: block; font-size: 28rpx; font-weight: 600; color: #2D2A26; }
 .tool-desc { display: block; font-size: 24rpx; color: #8B8680; margin-top: 4rpx; }

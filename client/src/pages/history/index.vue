@@ -2,7 +2,7 @@
   <view class="history-page">
     <view v-if="habitStore.history.length === 0" class="empty">
       <view class="empty-icon-wrap">
-        <text class="empty-icon">📅</text>
+        <image class="icon-svg-lg" :src="getIcon('calendar', '#8B8680')" mode="aspectFit" />
       </view>
       <text class="empty-text">暂无历史记录</text>
     </view>
@@ -29,6 +29,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useHabitStore } from '../../stores/habit'
+import { getIcon } from '../../utils/icons'
 
 const habitStore = useHabitStore()
 
@@ -75,9 +76,7 @@ function showDetail(item: any) {
   margin-bottom: 20rpx;
 }
 
-.empty-icon {
-  font-size: 48rpx;
-}
+.icon-svg-lg { width: 40rpx; height: 40rpx; }
 
 .empty-text {
   font-size: 28rpx;

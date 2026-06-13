@@ -139,7 +139,7 @@ onMounted(() => {
   }
 })
 
-function onTimeChange(key: string, e: any) { form.value[key] = e.detail.value }
+function onTimeChange(key: keyof typeof form.value, e: any) { form.value[key] = e.detail.value }
 
 async function submit() {
   saving.value = true

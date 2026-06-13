@@ -22,7 +22,7 @@
         @tap="selectOption(option)"
       >
         <view v-if="isSelected(option)" class="option-check">
-          <text class="check-mark">✓</text>
+          <image class="check-icon" :src="getCheckIcon()" mode="aspectFit" />
         </view>
         <text class="option-text">{{ option }}</text>
       </view>
@@ -43,6 +43,7 @@
 import { ref, computed } from 'vue'
 import { useUserStore } from '../../stores/user'
 import { GENDER_OPTIONS, AGE_OPTIONS, OCCUPATION_OPTIONS, DISEASE_OPTIONS } from '../../utils/constants'
+import { getIcon } from '../../utils/icons'
 
 const userStore = useUserStore()
 
@@ -66,6 +67,8 @@ const answers = ref<Record<string, any>>({ ...userStore.profile })
 
 const currentStepData = computed(() => steps[currentStep.value])
 const progressWidth = computed(() => `${((currentStep.value + 1) / steps.length) * 100}%`)
+
+function getCheckIcon() { return getIcon('check', '#FFFDF9') }
 
 function isSelected(option: string): boolean {
   const step = currentStepData.value
@@ -121,12 +124,13 @@ async function nextStep() {
 }
 
 async function finishOnboarding() {
+  userStore.updateLocalProfile(answers.value)
+  userStore.completeOnboarding()
+  uni.reLaunch({ url: '/pages/index/index' })
   try {
     await userStore.saveProfile(answers.value)
-    userStore.completeOnboarding()
-    uni.reLaunch({ url: '/pages/index/index' })
   } catch {
-    uni.showToast({ title: '保存失败，请重试', icon: 'none' })
+    console.warn('Profile sync to server failed, will retry later')
   }
 }
 </script>
@@ -222,9 +226,9 @@ async function finishOnboarding() {
   justify-content: center;
 }
 
-.check-mark {
-  font-size: 20rpx;
-  color: #FFFDF9;
+.check-icon {
+  width: 16rpx;
+  height: 16rpx;
 }
 
 .option-text {

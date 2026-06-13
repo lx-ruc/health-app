@@ -3,7 +3,7 @@
     <view class="upload-area" @tap="chooseImage">
       <view v-if="!previewUrl" class="upload-placeholder">
         <view class="upload-icon-wrap">
-          <text class="upload-icon">📷</text>
+          <image class="icon-svg-lg" :src="getIcon('camera', '#8B8680')" mode="aspectFit" />
         </view>
         <text class="upload-text">上传体检报告</text>
         <text class="upload-hint">拍照或从相册选择</text>
@@ -22,6 +22,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { post } from '../../api'
+import { getIcon } from '../../utils/icons'
 
 const previewUrl = ref('')
 const imageBase64 = ref('')
@@ -100,9 +101,7 @@ async function analyze() {
   margin-bottom: 20rpx;
 }
 
-.upload-icon {
-  font-size: 48rpx;
-}
+.icon-svg-lg { width: 40rpx; height: 40rpx; }
 
 .upload-text {
   font-size: 30rpx;
