@@ -446,15 +446,15 @@ function scrollToBottom() {
 }
 
 /* Markdown rendered content */
-.message.assistant .bubble :deep(h1) { font-size: 32rpx; font-weight: 700; margin: 16rpx 0 8rpx; }
-.message.assistant .bubble :deep(h2) { font-size: 30rpx; font-weight: 700; margin: 14rpx 0 6rpx; color: #4A6741; }
-.message.assistant .bubble :deep(h3) { font-size: 28rpx; font-weight: 600; margin: 12rpx 0 6rpx; }
-.message.assistant .bubble :deep(p) { margin: 6rpx 0; line-height: 1.7; }
-.message.assistant .bubble :deep(strong) { font-weight: 600; color: #4A6741; }
-.message.assistant .bubble :deep(ul), .message.assistant .bubble :deep(ol) { padding-left: 32rpx; margin: 8rpx 0; }
-.message.assistant .bubble :deep(li) { margin: 4rpx 0; line-height: 1.6; }
-.message.assistant .bubble :deep(code) { background: #F5F0E8; padding: 2rpx 8rpx; border-radius: 6rpx; font-size: 24rpx; }
-.message.assistant .bubble :deep(hr) { border: none; border-top: 1rpx solid #EDE8DF; margin: 16rpx 0; }
+.message.assistant .bubble :deep(.md-h1) { font-size: 32rpx; font-weight: 700; margin: 16rpx 0 8rpx; }
+.message.assistant .bubble :deep(.md-h2) { font-size: 30rpx; font-weight: 700; margin: 14rpx 0 6rpx; color: #4A6741; }
+.message.assistant .bubble :deep(.md-h3) { font-size: 28rpx; font-weight: 600; margin: 12rpx 0 6rpx; }
+.message.assistant .bubble :deep(.md-p) { margin: 6rpx 0; line-height: 1.7; }
+.message.assistant .bubble :deep(.md-strong) { font-weight: 600; color: #4A6741; }
+.message.assistant .bubble :deep(.md-ul), .message.assistant .bubble :deep(.md-ol) { padding-left: 32rpx; margin: 8rpx 0; }
+.message.assistant .bubble :deep(.md-li) { margin: 4rpx 0; line-height: 1.6; }
+.message.assistant .bubble :deep(.md-code) { background: #F5F0E8; padding: 2rpx 8rpx; border-radius: 6rpx; font-size: 24rpx; }
+.message.assistant .bubble :deep(.md-hr) { border: none; border-top: 1rpx solid #EDE8DF; margin: 16rpx 0; }
 
 .typing-cursor {
   color: #4A6741;

@@ -26,7 +26,7 @@ export function md(text: string): string {
     // Horizontal rule: --- or ***
     if (/^[-*_]{3,}$/.test(trimmed)) {
       closeList()
-      out.push('<hr/>')
+      out.push('<hr class="md-hr"/>')
       continue
     }
 
@@ -36,7 +36,7 @@ export function md(text: string): string {
       closeList()
       const level = Math.min(headingMatch[1].length, 6)
       const content = inline(headingMatch[2])
-      out.push(`<h${level}>${content}</h${level}>`)
+      out.push(`<h${level} class="md-h md-h${level}">${content}</h${level}>`)
       continue
     }
 
@@ -44,8 +44,8 @@ export function md(text: string): string {
     const ulMatch = trimmed.match(/^[-*]\s+(.+)$/)
     if (ulMatch) {
       if (inOl) { out.push('</ol>'); inOl = false }
-      if (!inUl) { out.push('<ul>'); inUl = true }
-      out.push(`<li>${inline(ulMatch[1])}</li>`)
+      if (!inUl) { out.push('<ul class="md-ul">'); inUl = true }
+      out.push(`<li class="md-li">${inline(ulMatch[1])}</li>`)
       continue
     }
 
@@ -53,14 +53,14 @@ export function md(text: string): string {
     const olMatch = trimmed.match(/^\d+\.\s+(.+)$/)
     if (olMatch) {
       if (inUl) { out.push('</ul>'); inUl = false }
-      if (!inOl) { out.push('<ol>'); inOl = true }
-      out.push(`<li>${inline(olMatch[1])}</li>`)
+      if (!inOl) { out.push('<ol class="md-ol">'); inOl = true }
+      out.push(`<li class="md-li">${inline(olMatch[1])}</li>`)
       continue
     }
 
     // Regular text
     closeList()
-    out.push(`<p>${inline(trimmed)}</p>`)
+    out.push(`<p class="md-p">${inline(trimmed)}</p>`)
   }
 
   closeList()
@@ -72,10 +72,10 @@ function inline(s: string): string {
   // Escape HTML first
   s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   // Bold **text**
-  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong class="md-strong">$1</strong>')
   // Italic *text* (not inside **)
-  s = s.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+  s = s.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em class="md-em">$1</em>')
   // Inline code `text`
-  s = s.replace(/`([^`]+)`/g, '<code>$1</code>')
+  s = s.replace(/`([^`]+)`/g, '<code class="md-code">$1</code>')
   return s
 }
