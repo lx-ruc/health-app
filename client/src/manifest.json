@@ -1,12 +1,12 @@
 {
     "name": "健康追踪",
-    "appid": "",
+    "appid": "wx3b8baf398bf449d2",
     "description": "健康生活习惯追踪小程序",
     "versionName": "1.0.0",
     "versionCode": "100",
     "transformPx": false,
     "mp-weixin": {
-        "appid": "",
+        "appid": "wx3b8baf398bf449d2",
         "setting": {
             "urlCheck": false
         },
