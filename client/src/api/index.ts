@@ -3,7 +3,7 @@ import { getToken, setToken, removeToken } from '../utils/storage'
 
 interface RequestOptions {
   url: string
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   data?: any
   header?: Record<string, string>
 }
@@ -13,7 +13,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
     const token = getToken()
     uni.request({
       url: `${API_BASE}${options.url}`,
-      method: options.method || 'GET',
+      method: (options.method || 'GET') as any,
       data: options.data,
       header: {
         'Content-Type': 'application/json',
@@ -67,6 +67,17 @@ async function tryRefreshToken(): Promise<boolean> {
 }
 
 export async function doLogin(): Promise<string> {
+  // H5 dev mode: uni.login always fails, use dev-login directly
+  // @ts-ignore
+  if (typeof window !== 'undefined') {
+    const res = await request<{ token: string }>({
+      url: '/auth/dev-login',
+      method: 'POST',
+      data: { openid: 'test_auto_user' },
+    })
+    setToken(res.token)
+    return res.token
+  }
   return new Promise((resolve, reject) => {
     uni.login({
       provider: 'weixin',
@@ -98,4 +109,12 @@ export function post<T = any>(url: string, data?: any) {
 
 export function put<T = any>(url: string, data?: any) {
   return request<T>({ url, method: 'PUT', data })
+}
+
+export function patch<T = any>(url: string, data?: any) {
+  return request<T>({ url, method: 'PATCH', data })
+}
+
+export function del<T = any>(url: string) {
+  return request<T>({ url, method: 'DELETE' })
 }

@@ -11,6 +11,18 @@ interface WxLoginBody {
 }
 
 export async function authRoutes(app: FastifyInstance) {
+  // Dev login — skip WeChat, sign JWT directly (only for H5 testing)
+  app.post<{ Body: { openid: string } }>('/dev-login', async (req, reply) => {
+    const openid = req.body?.openid || 'test_auto_user'
+    const token = jwt.sign({ openid }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN })
+    const db = (app as any).db
+    const existing = db.prepare('SELECT openid FROM users WHERE openid = ?').get(openid)
+    if (!existing) {
+      db.prepare('INSERT INTO users (openid) VALUES (?)').run(openid)
+    }
+    return { token }
+  })
+
   app.post<{ Body: WxLoginBody }>('/login', async (req, reply) => {
     const { code } = req.body
 

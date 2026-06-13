@@ -78,9 +78,24 @@ export function initDb(): Database.Database {
       FOREIGN KEY (openid) REFERENCES users(openid)
     );
 
+    CREATE TABLE IF NOT EXISTS plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      openid TEXT NOT NULL,
+      week_start TEXT NOT NULL,
+      category TEXT NOT NULL,
+      title TEXT NOT NULL,
+      detail TEXT,
+      source TEXT DEFAULT 'ai',
+      done INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (openid) REFERENCES users(openid)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_habits_openid_date ON habits(openid, date);
     CREATE INDEX IF NOT EXISTS idx_metric_records_openid ON metric_records(openid, metric_key, recorded_at);
     CREATE INDEX IF NOT EXISTS idx_chat_messages_openid ON chat_messages(openid, created_at);
+    CREATE INDEX IF NOT EXISTS idx_plans_openid_week ON plans(openid, week_start);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_plans_unique ON plans(openid, week_start, title);
   `)
 
   return db

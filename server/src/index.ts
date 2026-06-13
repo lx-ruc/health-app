@@ -8,6 +8,7 @@ import { habitRoutes } from './routes/habit.js'
 import { metricRoutes } from './routes/metric.js'
 import { analysisRoutes } from './routes/analysis.js'
 import { reportRoutes } from './routes/report.js'
+import { planRoutes } from './routes/plan.js'
 
 const app = Fastify({ logger: true })
 
@@ -23,6 +24,7 @@ app.register(habitRoutes, { prefix: '/api/habits' })
 app.register(metricRoutes, { prefix: '/api/metrics' })
 app.register(analysisRoutes, { prefix: '/api/analysis' })
 app.register(reportRoutes, { prefix: '/api/report' })
+app.register(planRoutes, { prefix: '/api/plans' })
 
 try {
   await app.listen({ port: 3000, host: '0.0.0.0' })

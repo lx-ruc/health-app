@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { verifyToken } from './auth.js'
-import { chat } from '../services/ai.js'
+import { chatStream } from '../services/ai.js'
 
 export async function analysisRoutes(app: FastifyInstance) {
   app.post('/chat', async (req, reply) => {
@@ -24,10 +24,14 @@ export async function analysisRoutes(app: FastifyInstance) {
     const userContext = buildUserContext(user, habits, records)
 
     try {
-      const reply_content = await chat(userContext, messages)
-      return { content: reply_content }
+      // Hijack reply for SSE streaming
+      reply.hijack()
+      await chatStream(userContext, messages, reply)
     } catch (err: any) {
-      return reply.status(500).send({ error: 'AI service error', detail: err.message })
+      if (!reply.raw.writableEnded) {
+        reply.raw.writeHead(500)
+        reply.raw.end(JSON.stringify({ error: 'AI service error', detail: err.message }))
+      }
     }
   })
 }
