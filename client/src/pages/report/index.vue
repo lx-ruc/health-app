@@ -22,8 +22,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { post } from '../../api'
-import { getToken } from '../../utils/storage'
-import { API_BASE } from '../../utils/constants'
 import { getIcon } from '../../utils/icons'
 
 const previewUrl = ref('')
@@ -122,9 +120,11 @@ async function analyze() {
   analyzing.value = true
   uni.showLoading({ title: 'AI 分析中...', mask: true })
   try {
-    const res = await postRaw<{ ocrText: string; analysis: string }>('/report/analyze', {
-      image: imageBase64.value,
-    })
+    const res = await post<{ ocrText: string; analysis: string }>(
+      '/report/analyze',
+      { image: imageBase64.value },
+      { timeout: 180000 },
+    )
     uni.hideLoading()
     uni.navigateTo({
       url: `/pages/report/result?ocrText=${encodeURIComponent(res.ocrText)}&analysis=${encodeURIComponent(res.analysis)}`,

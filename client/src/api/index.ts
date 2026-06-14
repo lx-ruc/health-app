@@ -6,6 +6,7 @@ interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   data?: any
   header?: Record<string, string>
+  timeout?: number
 }
 
 function request<T = any>(options: RequestOptions): Promise<T> {
@@ -15,6 +16,7 @@ function request<T = any>(options: RequestOptions): Promise<T> {
       url: `${API_BASE}${options.url}`,
       method: (options.method || 'GET') as any,
       data: options.data,
+      timeout: options.timeout,
       header: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -103,8 +105,8 @@ export function get<T = any>(url: string, data?: any) {
   return request<T>({ url, method: 'GET', data })
 }
 
-export function post<T = any>(url: string, data?: any) {
-  return request<T>({ url, method: 'POST', data })
+export function post<T = any>(url: string, data?: any, opts?: { timeout?: number }) {
+  return request<T>({ url, method: 'POST', data, timeout: opts?.timeout })
 }
 
 export function put<T = any>(url: string, data?: any) {
