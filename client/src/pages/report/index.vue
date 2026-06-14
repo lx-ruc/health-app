@@ -30,43 +30,69 @@ const analyzing = ref(false)
 const reading = ref(false)
 
 function chooseImage() {
-  uni.chooseImage({
+  // 优先用 chooseMedia（mp-weixin 推荐 API），fallback 到旧 chooseImage
+  const choose = (uni as any).chooseMedia || uni.chooseImage
+  const opts: any = {
     count: 1,
     sourceType: ['album', 'camera'],
-    success: (res) => {
-      const tempPath = res.tempFilePaths?.[0] || (res.tempFiles as any)?.[0]?.path
+    success: (res: any) => {
+      // chooseMedia: res.tempFiles[].tempFilePath ;  chooseImage: res.tempFilePaths[]
+      const tempPath = res.tempFilePaths?.[0] || res.tempFiles?.[0]?.tempFilePath || res.tempFiles?.[0]?.path
       if (!tempPath) {
-        uni.showToast({ title: '选图失败，请重试', icon: 'none' })
+        uni.showToast({ title: '选图失败：未拿到路径', icon: 'none' })
         return
       }
-      previewUrl.value = tempPath
-      imageBase64.value = '' // 重置，避免拿上次的数据
-      reading.value = true
-      const fsm = (uni as any).getFileSystemManager?.()
-      if (!fsm) {
-        uni.showToast({ title: '当前环境不支持读取文件', icon: 'none' })
-        reading.value = false
-        return
-      }
-      fsm.readFile({
-        filePath: tempPath,
-        encoding: 'base64',
-        success: (fileRes: any) => {
-          const ext = tempPath.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg'
-          imageBase64.value = `data:${ext};base64,${fileRes.data as string}`
-          reading.value = false
-        },
-        fail: (err: any) => {
-          reading.value = false
-          uni.showToast({ title: '图片读取失败：' + (err?.errMsg || '未知'), icon: 'none', duration: 3000 })
-        },
-      })
+      readImageAsBase64(tempPath)
     },
     fail: (err: any) => {
       if (!err?.errMsg?.includes('cancel')) {
-        uni.showToast({ title: '选图失败', icon: 'none' })
+        uni.showToast({ title: '选图失败：' + (err?.errMsg || ''), icon: 'none' })
       }
     },
+  }
+  if ((uni as any).chooseMedia) {
+    opts.mediaType = ['image']
+  }
+  choose(opts)
+}
+
+function readImageAsBase64(tempPath: string) {
+  previewUrl.value = tempPath
+  imageBase64.value = ''
+  reading.value = true
+
+  const fsm = (uni as any).getFileSystemManager?.()
+  if (!fsm) {
+    reading.value = false
+    uni.showToast({ title: '当前环境不支持读取文件', icon: 'none' })
+    return
+  }
+
+  const ext = tempPath.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg'
+
+  const onFail = (err: any) => {
+    reading.value = false
+    const msg = err?.errMsg || err?.errMsg || '未知错误'
+    // 给出更详细的诊断信息：路径 + 错误
+    uni.showModal({
+      title: '图片读取失败',
+      content: `路径: ${tempPath.slice(0, 60)}...\n错误: ${msg}`,
+      showCancel: false,
+    })
+  }
+
+  fsm.readFile({
+    filePath: tempPath,
+    encoding: 'base64',
+    success: (fileRes: any) => {
+      if (!fileRes.data || fileRes.data.length < 100) {
+        onFail({ errMsg: '读取到的数据为空或过短' })
+        return
+      }
+      imageBase64.value = `data:${ext};base64,${fileRes.data as string}`
+      reading.value = false
+    },
+    fail: onFail,
   })
 }
 
