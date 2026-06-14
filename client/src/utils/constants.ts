@@ -2,11 +2,9 @@
 // - H5 dev: localhost 可达
 // - mp-weixin 沙箱访问不到 dev 机器的 127.0.0.1，必须用 LAN IP
 // - 真机/生产：改成 HTTPS 域名 + 在 mp.weixin.qq.com 后台配 request 合法域名
-// #ifdef H5
-const API_HOST = 'http://localhost:3000'
-// #endif
+let API_HOST = 'http://localhost:3000'
 // #ifndef H5
-const API_HOST = 'http://192.168.31.33:3000'
+API_HOST = 'http://192.168.31.33:3000'
 // #endif
 export const API_BASE = `${API_HOST}/api`
 
