@@ -55,9 +55,14 @@ const analysis = ref('')
 const abnormalItems = ref<any[]>([])
 const expanded = ref<Record<number, boolean>>({})
 
-onLoad((query) => {
-  ocrText.value = decodeURIComponent(query?.ocrText || '')
-  analysis.value = decodeURIComponent(query?.analysis || '')
+onLoad(() => {
+  // 改成从 storage 读，避免 URL 参数过长被截断
+  const cached = uni.getStorageSync('last_report_result')
+  if (cached) {
+    ocrText.value = cached.ocrText || ''
+    analysis.value = cached.analysis || ''
+    uni.removeStorageSync('last_report_result')
+  }
   try {
     const parsed = JSON.parse(analysis.value)
     if (parsed.abnormal) abnormalItems.value = parsed.abnormal

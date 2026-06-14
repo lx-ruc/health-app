@@ -11,32 +11,84 @@
       <image v-else :src="previewUrl" mode="aspectFit" class="preview-image" />
     </view>
 
-    <view v-if="previewUrl" class="analyze-area">
-      <view class="analyze-btn" :class="{ loading: analyzing || reading }" @tap="analyze">
-        <text class="analyze-text">{{ analyzing ? '分析中...' : reading ? '读取图片...' : '开始 AI 分析' }}</text>
+    <view v-if="previewUrl && !analyzing" class="analyze-area">
+      <view class="analyze-btn" @tap="analyze">
+        <text class="analyze-text">开始 AI 分析</text>
+      </view>
+    </view>
+
+    <!-- 流式进度 -->
+    <view v-if="analyzing" class="progress-card">
+      <view class="progress-header">
+        <view class="spinner" />
+        <text class="progress-title">{{ progressTitle }}</text>
+      </view>
+      <view class="steps">
+        <view class="step" :class="stepStatus('upload')">
+          <text class="step-icon">{{ stepIcon('upload') }}</text>
+          <text class="step-label">上传图片</text>
+        </view>
+        <view class="step" :class="stepStatus('ocr')">
+          <text class="step-icon">{{ stepIcon('ocr') }}</text>
+          <text class="step-label">OCR 识别</text>
+        </view>
+        <view class="step" :class="stepStatus('ai')">
+          <text class="step-icon">{{ stepIcon('ai') }}</text>
+          <text class="step-label">AI 分析异常</text>
+        </view>
+      </view>
+      <view v-if="ocrPreview" class="ocr-preview">
+        <text class="preview-title">OCR 结果（实时）：</text>
+        <text class="preview-text">{{ ocrPreview.slice(0, 300) }}{{ ocrPreview.length > 300 ? '...' : '' }}</text>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { post } from '../../api'
+import { ref, computed } from 'vue'
 import { getIcon } from '../../utils/icons'
+import { getToken } from '../../utils/storage'
+import { API_BASE } from '../../utils/constants'
 
 const previewUrl = ref('')
 const imageBase64 = ref('')
 const analyzing = ref(false)
 const reading = ref(false)
+const currentStep = ref<'upload' | 'ocr' | 'ai' | 'done'>('upload')
+const ocrPreview = ref('')
+
+const progressTitle = computed(() => {
+  switch (currentStep.value) {
+    case 'upload': return '上传中...'
+    case 'ocr': return '正在识别文字内容...'
+    case 'ai': return '正在分析异常指标...'
+    case 'done': return '完成'
+    default: return ''
+  }
+})
+
+const STEP_ORDER: Array<'upload' | 'ocr' | 'ai'> = ['upload', 'ocr', 'ai']
+function stepStatus(step: 'upload' | 'ocr' | 'ai') {
+  const idx = STEP_ORDER.indexOf(step)
+  const curIdx = STEP_ORDER.indexOf(currentStep.value === 'done' ? 'ai' : currentStep.value)
+  if (idx < curIdx || currentStep.value === 'done') return 'done'
+  if (idx === curIdx) return 'active'
+  return 'pending'
+}
+function stepIcon(step: 'upload' | 'ocr' | 'ai') {
+  const s = stepStatus(step)
+  if (s === 'done') return '✓'
+  if (s === 'active') return '···'
+  return ''
+}
 
 function chooseImage() {
-  // 优先用 chooseMedia（mp-weixin 推荐 API），fallback 到旧 chooseImage
   const choose = (uni as any).chooseMedia || uni.chooseImage
   const opts: any = {
     count: 1,
     sourceType: ['album', 'camera'],
     success: (res: any) => {
-      // chooseMedia: res.tempFiles[].tempFilePath ;  chooseImage: res.tempFilePaths[]
       const tempPath = res.tempFilePaths?.[0] || res.tempFiles?.[0]?.tempFilePath || res.tempFiles?.[0]?.path
       if (!tempPath) {
         uni.showToast({ title: '选图失败：未拿到路径', icon: 'none' })
@@ -50,9 +102,7 @@ function chooseImage() {
       }
     },
   }
-  if ((uni as any).chooseMedia) {
-    opts.mediaType = ['image']
-  }
+  if ((uni as any).chooseMedia) opts.mediaType = ['image']
   choose(opts)
 }
 
@@ -61,7 +111,6 @@ function readImageAsBase64(tempPath: string) {
   imageBase64.value = ''
   reading.value = true
 
-  // 先压缩图片：手机原图 5-10MB，压到 ~1MB 内避免请求体过大
   const compress = (uni as any).compressImage
   const doRead = (pathToRead: string) => {
     const fsm = (uni as any).getFileSystemManager?.()
@@ -73,10 +122,9 @@ function readImageAsBase64(tempPath: string) {
     const ext = pathToRead.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg'
     const onFail = (err: any) => {
       reading.value = false
-      const msg = err?.errMsg || '未知错误'
       uni.showModal({
         title: '图片读取失败',
-        content: `路径: ${pathToRead.slice(0, 60)}...\n错误: ${msg}`,
+        content: `路径: ${pathToRead.slice(0, 60)}...\n错误: ${err?.errMsg || '未知'}`,
         showCancel: false,
       })
     }
@@ -101,7 +149,7 @@ function readImageAsBase64(tempPath: string) {
       quality: 60,
       compressedWidth: 1080,
       success: (r: any) => doRead(r.tempFilePath || tempPath),
-      fail: () => doRead(tempPath), // 压缩失败用原图
+      fail: () => doRead(tempPath),
     })
   } else {
     doRead(tempPath)
@@ -118,29 +166,116 @@ async function analyze() {
     return
   }
   analyzing.value = true
-  uni.showLoading({ title: 'AI 分析中...', mask: true })
+  currentStep.value = 'upload'
+  ocrPreview.value = ''
+
   try {
-    const res = await post<{ ocrText: string; analysis: string }>(
-      '/report/analyze',
-      { image: imageBase64.value },
-      { timeout: 180000 },
-    )
-    uni.hideLoading()
-    uni.navigateTo({
-      url: `/pages/report/result?ocrText=${encodeURIComponent(res.ocrText)}&analysis=${encodeURIComponent(res.analysis)}`,
-    })
+    const { ocrText, analysis } = await streamAnalyze(imageBase64.value)
+    // 数据存 storage，避免 URL 参数过长
+    uni.setStorageSync('last_report_result', { ocrText, analysis, ts: Date.now() })
+    analyzing.value = false
+    uni.navigateTo({ url: '/pages/report/result' })
   } catch (err: any) {
-    uni.hideLoading()
-    // err.message 来自 HTTP 错误（如 422）；err.errMsg 来自 uni.request fail（网络层）
-    const msg = err?.message || err?.errMsg || '未知错误（请截图发我）'
+    analyzing.value = false
+    const msg = err?.message || err?.errMsg || '未知错误'
     uni.showModal({
       title: 'AI 分析失败',
       content: msg.slice(0, 300),
       showCancel: false,
     })
-  } finally {
-    analyzing.value = false
   }
+}
+
+/** SSE 流式调报告分析，实时更新 currentStep + ocrPreview */
+function streamAnalyze(image: string): Promise<{ ocrText: string; analysis: string }> {
+  return new Promise((resolve, reject) => {
+    let ocrText = ''
+    let analysis = ''
+    let lineBuffer = ''
+    let errored = false
+
+    const task: any = uni.request({
+      url: `${API_BASE}/report/analyze`,
+      method: 'POST' as any,
+      data: { image },
+      timeout: 180000,
+      enableChunked: true,
+      header: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getToken()}`,
+      },
+      success: () => {
+        if (errored) return
+        if (!ocrText || !analysis) {
+          reject(new Error('响应不完整（OCR 或 AI 步骤未完成）'))
+          return
+        }
+        resolve({ ocrText, analysis })
+      },
+      fail: (err: any) => reject(err),
+    })
+
+    task.onChunkReceived?.((res: any) => {
+      if (!res?.data || errored) return
+      lineBuffer += arrayBufferToUtf8(res.data as ArrayBuffer)
+      const lines = lineBuffer.split('\n')
+      lineBuffer = lines.pop() || ''
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed.startsWith('data:')) continue
+        const payload = trimmed.slice(5).trim()
+        if (!payload) continue
+        try {
+          const data = JSON.parse(payload)
+          if (data.step === 'ocr_start') {
+            currentStep.value = 'ocr'
+          } else if (data.step === 'ocr_done') {
+            ocrText = data.ocrText || ''
+            ocrPreview.value = ocrText
+            currentStep.value = 'ai'
+          } else if (data.step === 'ai_start') {
+            currentStep.value = 'ai'
+          } else if (data.step === 'ai_done') {
+            analysis = data.analysis || ''
+          } else if (data.step === 'done') {
+            ocrText = data.ocrText || ocrText
+            analysis = data.analysis || analysis
+            currentStep.value = 'done'
+          } else if (data.step === 'error') {
+            errored = true
+            reject(new Error(data.error + (data.detail ? `（${data.detail}）` : '')))
+          }
+        } catch {}
+      }
+    })
+  })
+}
+
+function arrayBufferToUtf8(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf)
+  let result = ''
+  let i = 0
+  while (i < bytes.length) {
+    const b1 = bytes[i++]
+    if (b1 < 0x80) {
+      result += String.fromCharCode(b1)
+    } else if (b1 < 0xe0) {
+      const b2 = bytes[i++]
+      result += String.fromCharCode(((b1 & 0x1f) << 6) | (b2 & 0x3f))
+    } else if (b1 < 0xf0) {
+      const b2 = bytes[i++]
+      const b3 = bytes[i++]
+      result += String.fromCharCode(((b1 & 0x0f) << 12) | ((b2 & 0x3f) << 6) | (b3 & 0x3f))
+    } else {
+      const b2 = bytes[i++]
+      const b3 = bytes[i++]
+      const b4 = bytes[i++]
+      const cp = ((b1 & 0x07) << 18) | ((b2 & 0x3f) << 12) | ((b3 & 0x3f) << 6) | (b4 & 0x3f)
+      const off = cp - 0x10000
+      result += String.fromCharCode(0xd800 + (off >> 10), 0xdc00 + (off & 0x3ff))
+    }
+  }
+  return result
 }
 </script>
 
@@ -211,14 +346,96 @@ async function analyze() {
   border-radius: 24rpx;
 }
 
-.analyze-btn.loading {
-  opacity: 0.7;
-}
-
 .analyze-text {
   font-size: 30rpx;
   color: #FFFDF9;
   font-weight: 600;
   letter-spacing: 1rpx;
+}
+
+/* Progress card */
+.progress-card {
+  margin-top: 40rpx;
+  background: #FFFDF9;
+  border-radius: 24rpx;
+  padding: 36rpx 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(45, 42, 38, 0.04);
+}
+.progress-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+.spinner {
+  width: 32rpx;
+  height: 32rpx;
+  border: 4rpx solid #EDE8DF;
+  border-top-color: #4A6741;
+  border-radius: 50%;
+  margin-right: 16rpx;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.progress-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #2D2A26;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  opacity: 0.4;
+}
+.step.active { opacity: 1; }
+.step.done { opacity: 1; }
+.step-icon {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: #EDE8DF;
+  color: #8B8680;
+  font-size: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.step.active .step-icon {
+  background: #4A6741;
+  color: #FFFDF9;
+}
+.step.done .step-icon {
+  background: #4A6741;
+  color: #FFFDF9;
+}
+.step-label {
+  font-size: 28rpx;
+  color: #2D2A26;
+}
+
+.ocr-preview {
+  background: #FAF7F2;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-top: 8rpx;
+}
+.preview-title {
+  font-size: 22rpx;
+  color: #8B8680;
+  display: block;
+  margin-bottom: 8rpx;
+}
+.preview-text {
+  font-size: 24rpx;
+  color: #5A5650;
+  line-height: 1.5;
 }
 </style>
