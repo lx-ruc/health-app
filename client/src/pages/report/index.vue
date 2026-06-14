@@ -142,30 +142,6 @@ async function analyze() {
     analyzing.value = false
   }
 }
-
-/** 报告分析专用：长超时（OCR+AI 可能 60s+），不走全局 401 重试 */
-function postRaw<T = any>(url: string, data?: any): Promise<T> {
-  return new Promise((resolve, reject) => {
-    uni.request({
-      url: `${API_BASE}${url}`,
-      method: 'POST' as any,
-      data,
-      timeout: 180000,
-      header: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getToken()}`,
-      },
-      success: (res: any) => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(res.data as T)
-        } else {
-          reject(Object.assign(new Error(`HTTP ${res.statusCode}: ${JSON.stringify(res.data).slice(0, 300)}`), { errMsg: `HTTP ${res.statusCode}` }))
-        }
-      },
-      fail: (err: any) => reject(err),
-    })
-  })
-}
 </script>
 
 <style scoped>
