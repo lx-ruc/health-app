@@ -52,6 +52,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onUnmounted } from 'vue'
+import { post } from '../../api'
 import { getIcon } from '../../utils/icons'
 import { getToken } from '../../utils/storage'
 import { API_BASE } from '../../utils/constants'
@@ -182,7 +183,19 @@ async function analyze() {
   aiStreamText.value = ''
 
   try {
-    const { ocrText, analysis } = await streamAnalyze(imageBase64.value)
+    // 第 1 步：OCR（普通 POST，大 body 用全局 post 享受 401 自动重试）
+    currentStep.value = 'ocr'
+    const { ocrText } = await post<{ ocrText: string }>(
+      '/report/ocr',
+      { image: imageBase64.value },
+      { timeout: 60000 },
+    )
+    ocrPreview.value = ocrText
+    currentStep.value = 'ai'
+
+    // 第 2 步：AI 流式（SSE，小 body）
+    const analysis = await streamAnalyzeAi(ocrText)
+
     uni.setStorageSync('last_report_result', { ocrText, analysis, ts: Date.now() })
     analyzing.value = false
     uni.navigateTo({ url: '/pages/report/result' })
@@ -197,10 +210,9 @@ async function analyze() {
   }
 }
 
-/** SSE 流式调报告分析。完全照搬 chat.ts 已验证模式：enableChunked + responseType:arraybuffer */
-function streamAnalyze(image: string): Promise<{ ocrText: string; analysis: string }> {
+/** SSE 流式调 AI 分析。小 body，照搬 chat.ts 模式（enableChunked + arraybuffer） */
+function streamAnalyzeAi(ocrText: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    let ocrText = ''
     let analysis = ''
     let lineBuffer = ''
     let errored = false
@@ -212,13 +224,7 @@ function streamAnalyze(image: string): Promise<{ ocrText: string; analysis: stri
       if (!payload) return
       try {
         const data = JSON.parse(payload)
-        if (data.step === 'ocr_start') {
-          currentStep.value = 'ocr'
-        } else if (data.step === 'ocr_done') {
-          ocrText = data.ocrText || ''
-          ocrPreview.value = ocrText
-          currentStep.value = 'ai'
-        } else if (data.step === 'ai_start') {
+        if (data.step === 'ai_start') {
           currentStep.value = 'ai'
         } else if (data.step === 'ai_token') {
           aiStreamText.value = data.content || ''
@@ -226,7 +232,6 @@ function streamAnalyze(image: string): Promise<{ ocrText: string; analysis: stri
           analysis = data.analysis || ''
           aiStreamText.value = analysis
         } else if (data.step === 'done') {
-          ocrText = data.ocrText || ocrText
           analysis = data.analysis || analysis
           currentStep.value = 'done'
         } else if (data.step === 'error') {
@@ -237,12 +242,11 @@ function streamAnalyze(image: string): Promise<{ ocrText: string; analysis: stri
     }
 
     const task: any = uni.request({
-      url: `${API_BASE}/report/analyze`,
+      url: `${API_BASE}/report/analyze-stream`,
       method: 'POST' as any,
-      data: { image },
+      data: { ocrText },
       timeout: 180000,
       enableChunked: true,
-      // 关键：跟 chat.ts 一样用 arraybuffer，不然 mp-weixin 不触发 onChunkReceived
       responseType: 'arraybuffer' as any,
       header: {
         'Content-Type': 'application/json',
@@ -250,33 +254,24 @@ function streamAnalyze(image: string): Promise<{ ocrText: string; analysis: stri
       },
       success: (res: any) => {
         if (errored) return
-        // flush 残留 buffer
         if (lineBuffer.trim()) {
           processLine(lineBuffer)
           lineBuffer = ''
         }
-        // 兜底：onChunkReceived 完全没触发时，从 res.data 解
-        if ((!ocrText || !analysis) && res?.data) {
+        // 兜底：onChunkReceived 没触发时，从 res.data 解
+        if (!analysis && res?.data) {
           let raw: string
-          if (res.data instanceof ArrayBuffer) {
-            raw = arrayBufferToUtf8(res.data)
-          } else if (typeof res.data === 'string') {
-            raw = res.data
-          } else {
-            raw = JSON.stringify(res.data)
-          }
+          if (res.data instanceof ArrayBuffer) raw = arrayBufferToUtf8(res.data)
+          else if (typeof res.data === 'string') raw = res.data
+          else raw = JSON.stringify(res.data)
           const lines = raw.split('\n')
           for (const line of lines) processLine(line)
         }
-        if (!ocrText && !analysis) {
-          reject(new Error(`未收到任何响应（statusCode=${res?.statusCode}）`))
+        if (!analysis) {
+          reject(new Error(`AI 分析未返回内容（statusCode=${res?.statusCode}）`))
           return
         }
-        if (!analysis && ocrText) {
-          resolve({ ocrText, analysis: '{"abnormal":[]}' })
-          return
-        }
-        resolve({ ocrText, analysis })
+        resolve(analysis)
       },
       fail: (err: any) => reject(err),
     })
