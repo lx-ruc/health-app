@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify'
+import axios from 'axios'
 import { verifyToken } from './auth.js'
 import { ocrImage } from '../services/ocr.js'
 import { analyzeReport } from '../services/ai.js'
@@ -28,6 +29,13 @@ export async function reportRoutes(app: FastifyInstance) {
 
       return { ocrText, analysis }
     } catch (err: any) {
+      // Upstream OCR rejecting bad/unrecognizable image → 422 client-side
+      if (axios.isAxiosError(err) && err.response && err.response.status >= 400 && err.response.status < 500) {
+        return reply.status(422).send({
+          error: 'OCR failed, please upload a clearer image',
+          detail: `upstream ${err.response.status}`,
+        })
+      }
       return reply.status(500).send({ error: 'analysis failed', detail: err.message })
     }
   })
