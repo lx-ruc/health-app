@@ -61,39 +61,51 @@ function readImageAsBase64(tempPath: string) {
   imageBase64.value = ''
   reading.value = true
 
-  const fsm = (uni as any).getFileSystemManager?.()
-  if (!fsm) {
-    reading.value = false
-    uni.showToast({ title: '当前环境不支持读取文件', icon: 'none' })
-    return
-  }
-
-  const ext = tempPath.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg'
-
-  const onFail = (err: any) => {
-    reading.value = false
-    const msg = err?.errMsg || err?.errMsg || '未知错误'
-    // 给出更详细的诊断信息：路径 + 错误
-    uni.showModal({
-      title: '图片读取失败',
-      content: `路径: ${tempPath.slice(0, 60)}...\n错误: ${msg}`,
-      showCancel: false,
+  // 先压缩图片：手机原图 5-10MB，压到 ~1MB 内避免请求体过大
+  const compress = (uni as any).compressImage
+  const doRead = (pathToRead: string) => {
+    const fsm = (uni as any).getFileSystemManager?.()
+    if (!fsm) {
+      reading.value = false
+      uni.showToast({ title: '当前环境不支持读取文件', icon: 'none' })
+      return
+    }
+    const ext = pathToRead.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg'
+    const onFail = (err: any) => {
+      reading.value = false
+      const msg = err?.errMsg || '未知错误'
+      uni.showModal({
+        title: '图片读取失败',
+        content: `路径: ${pathToRead.slice(0, 60)}...\n错误: ${msg}`,
+        showCancel: false,
+      })
+    }
+    fsm.readFile({
+      filePath: pathToRead,
+      encoding: 'base64',
+      success: (fileRes: any) => {
+        if (!fileRes.data || fileRes.data.length < 100) {
+          onFail({ errMsg: '读取到的数据为空或过短' })
+          return
+        }
+        imageBase64.value = `data:${ext};base64,${fileRes.data as string}`
+        reading.value = false
+      },
+      fail: onFail,
     })
   }
 
-  fsm.readFile({
-    filePath: tempPath,
-    encoding: 'base64',
-    success: (fileRes: any) => {
-      if (!fileRes.data || fileRes.data.length < 100) {
-        onFail({ errMsg: '读取到的数据为空或过短' })
-        return
-      }
-      imageBase64.value = `data:${ext};base64,${fileRes.data as string}`
-      reading.value = false
-    },
-    fail: onFail,
-  })
+  if (compress) {
+    compress.call(uni, {
+      src: tempPath,
+      quality: 60,
+      compressedWidth: 1080,
+      success: (r: any) => doRead(r.tempFilePath || tempPath),
+      fail: () => doRead(tempPath), // 压缩失败用原图
+    })
+  } else {
+    doRead(tempPath)
+  }
 }
 
 async function analyze() {
@@ -112,7 +124,12 @@ async function analyze() {
       url: `/pages/report/result?ocrText=${encodeURIComponent(res.ocrText)}&analysis=${encodeURIComponent(res.analysis)}`,
     })
   } catch (err: any) {
-    uni.showToast({ title: err.message || '分析失败', icon: 'none' })
+    const msg = err?.message || '未知错误'
+    uni.showModal({
+      title: 'AI 分析失败',
+      content: msg.slice(0, 200),
+      showCancel: false,
+    })
   } finally {
     analyzing.value = false
   }

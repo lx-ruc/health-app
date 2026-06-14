@@ -13,7 +13,10 @@ import { wechatRoutes } from './routes/wechat.js'
 import { reminderConfigRoutes } from './routes/reminder-config.js'
 import { startScheduler } from './scheduler/index.js'
 
-const app = Fastify({ logger: true })
+const app = Fastify({
+  logger: true,
+  bodyLimit: 10 * 1024 * 1024, // 10MB - 体检报告图片 base64 编码后可达数 MB
+})
 
 await app.register(cors, { origin: true })
 
