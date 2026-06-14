@@ -1,4 +1,6 @@
-export const API_BASE = 'http://localhost:3000/api'
+// 用 127.0.0.1 而不是 localhost：部分 mp-weixin 版本对 localhost 有特殊校验
+// 真机部署时改成 HTTPS 域名
+export const API_BASE = 'http://127.0.0.1:3000/api'
 
 export const GENDER_OPTIONS = ['男', '女'] as const
 

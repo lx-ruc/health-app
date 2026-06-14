@@ -57,8 +57,9 @@ export const useChatStore = defineStore('chat', () => {
       if (!fullContent) lastError.value = true
       return fullContent
     } catch (e: any) {
-      const reason = e?.errMsg || e?.message || '网络错误'
-      messages.value[assistantIdx].content = `分析失败：${reason}。请稍后重试。`
+      // mp-weixin 失败时 errMsg 形如 "request:fail error:102"，把完整信息透出来方便定位
+      const reason = e?.errMsg || e?.message || `errCode=${e?.errCode ?? '未知'}`
+      messages.value[assistantIdx].content = `分析失败：${reason}\n\n常见原因：\n• 开发者工具未勾选「详情→本地设置→不校验合法域名」\n• 真机访问 localhost（需走真实域名 + HTTPS）`
       setChatHistory(messages.value)
       lastError.value = true
       return ''
