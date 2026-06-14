@@ -33,7 +33,7 @@
         </view>
         <view class="step" :class="stepStatus('ai')">
           <text class="step-icon">{{ stepIcon('ai') }}</text>
-          <text class="step-label">AI 分析异常</text>
+          <text class="step-label">AI 分析</text>
         </view>
       </view>
 
