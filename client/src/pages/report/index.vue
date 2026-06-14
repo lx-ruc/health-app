@@ -232,15 +232,25 @@ function streamAnalyze(image: string): Promise<{ ocrText: string; analysis: stri
         'Content-Type': 'application/json',
         Authorization: `Bearer ${getToken()}`,
       },
-      success: () => {
+      success: (res: any) => {
         if (errored) return
-        // 兜底：flush 残留的 lineBuffer（最后一块可能没换行符结尾）
+        // 兜底 1：flush 残留的 lineBuffer（最后一块可能没换行符结尾）
         if (lineBuffer.trim()) {
           processLine(lineBuffer)
           lineBuffer = ''
         }
+        // 兜底 2：某些 mp-weixin 版本不会触发 onChunkReceived，整包塞 res.data
+        // 此时 progress UI 没动效但数据完整。res.data 可能是 string 或 object
+        if ((!ocrText || !analysis) && res?.data) {
+          const raw = typeof res.data === 'string' ? res.data : JSON.stringify(res.data)
+          // 拼到 lineBuffer 里再处理一次
+          const combined = lineBuffer + raw
+          lineBuffer = ''
+          const lines = combined.split('\n')
+          for (const line of lines) processLine(line)
+        }
         if (!ocrText && !analysis) {
-          reject(new Error('未收到任何响应（请检查网络或后端是否正常）'))
+          reject(new Error(`未收到任何响应（statusCode=${res?.statusCode}, dataLen=${JSON.stringify(res?.data || '').length}）`))
           return
         }
         if (!ocrText) {
