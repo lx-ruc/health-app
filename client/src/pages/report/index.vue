@@ -17,7 +17,7 @@
       </view>
     </view>
 
-    <!-- 流式进度 -->
+    <!-- 模拟进度（基于时间估算，不依赖 SSE 流式） -->
     <view v-if="analyzing" class="progress-card">
       <view class="progress-header">
         <view class="spinner" />
@@ -37,32 +37,32 @@
           <text class="step-label">AI 分析异常</text>
         </view>
       </view>
-      <view v-if="ocrPreview" class="ocr-preview">
-        <text class="preview-title">OCR 结果（实时）：</text>
-        <text class="preview-text">{{ ocrPreview.slice(0, 300) }}{{ ocrPreview.length > 300 ? '...' : '' }}</text>
-      </view>
+      <text class="progress-tip">整个过程约 30-60 秒，请耐心等待</text>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
+import { post } from '../../api'
 import { getIcon } from '../../utils/icons'
-import { getToken } from '../../utils/storage'
-import { API_BASE } from '../../utils/constants'
 
 const previewUrl = ref('')
 const imageBase64 = ref('')
 const analyzing = ref(false)
 const reading = ref(false)
 const currentStep = ref<'upload' | 'ocr' | 'ai' | 'done'>('upload')
-const ocrPreview = ref('')
+
+// 时间驱动的模拟进度（OCR 通常 5-15s，AI 通常 10-30s）
+const OCR_THRESHOLD_MS = 3000
+const AI_THRESHOLD_MS = 12000
+let stepTimer: any = null
 
 const progressTitle = computed(() => {
   switch (currentStep.value) {
     case 'upload': return '上传中...'
-    case 'ocr': return '正在识别文字内容...'
-    case 'ai': return '正在分析异常指标...'
+    case 'ocr': return '正在识别文字内容...（PaddleOCR）'
+    case 'ai': return '正在分析异常指标...（DeepSeek）'
     case 'done': return '完成'
     default: return ''
   }
@@ -82,6 +82,25 @@ function stepIcon(step: 'upload' | 'ocr' | 'ai') {
   if (s === 'active') return '···'
   return ''
 }
+
+function startProgressTimers() {
+  currentStep.value = 'upload'
+  stepTimer = setTimeout(() => {
+    currentStep.value = 'ocr'
+  }, 500)
+  stepTimer = setTimeout(() => {
+    currentStep.value = 'ai'
+  }, OCR_THRESHOLD_MS + 500)
+}
+
+function clearProgressTimers() {
+  if (stepTimer) {
+    clearTimeout(stepTimer)
+    stepTimer = null
+  }
+}
+
+onUnmounted(clearProgressTimers)
 
 function chooseImage() {
   const choose = (uni as any).chooseMedia || uni.chooseImage
@@ -166,16 +185,25 @@ async function analyze() {
     return
   }
   analyzing.value = true
-  currentStep.value = 'upload'
-  ocrPreview.value = ''
+  startProgressTimers()
 
   try {
-    const { ocrText, analysis } = await streamAnalyze(imageBase64.value)
-    // 数据存 storage，避免 URL 参数过长
-    uni.setStorageSync('last_report_result', { ocrText, analysis, ts: Date.now() })
+    const res = await post<{ ocrText: string; analysis: string }>(
+      '/report/analyze',
+      { image: imageBase64.value },
+      { timeout: 180000 },
+    )
+    clearProgressTimers()
+    currentStep.value = 'done'
+    uni.setStorageSync('last_report_result', {
+      ocrText: res.ocrText,
+      analysis: res.analysis,
+      ts: Date.now(),
+    })
     analyzing.value = false
     uni.navigateTo({ url: '/pages/report/result' })
   } catch (err: any) {
+    clearProgressTimers()
     analyzing.value = false
     const msg = err?.message || err?.errMsg || '未知错误'
     uni.showModal({
@@ -184,124 +212,6 @@ async function analyze() {
       showCancel: false,
     })
   }
-}
-
-/** SSE 流式调报告分析，实时更新 currentStep + ocrPreview */
-function streamAnalyze(image: string): Promise<{ ocrText: string; analysis: string }> {
-  return new Promise((resolve, reject) => {
-    let ocrText = ''
-    let analysis = ''
-    let lineBuffer = ''
-    let errored = false
-
-    const processLine = (rawLine: string) => {
-      const trimmed = rawLine.trim()
-      if (!trimmed.startsWith('data:')) return
-      const payload = trimmed.slice(5).trim()
-      if (!payload) return
-      try {
-        const data = JSON.parse(payload)
-        if (data.step === 'ocr_start') {
-          currentStep.value = 'ocr'
-        } else if (data.step === 'ocr_done') {
-          ocrText = data.ocrText || ''
-          ocrPreview.value = ocrText
-          currentStep.value = 'ai'
-        } else if (data.step === 'ai_start') {
-          currentStep.value = 'ai'
-        } else if (data.step === 'ai_done') {
-          analysis = data.analysis || ''
-        } else if (data.step === 'done') {
-          ocrText = data.ocrText || ocrText
-          analysis = data.analysis || analysis
-          currentStep.value = 'done'
-        } else if (data.step === 'error') {
-          errored = true
-          reject(new Error(data.error + (data.detail ? `（${data.detail}）` : '')))
-        }
-      } catch {}
-    }
-
-    const task: any = uni.request({
-      url: `${API_BASE}/report/analyze`,
-      method: 'POST' as any,
-      data: { image },
-      timeout: 180000,
-      enableChunked: true,
-      header: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${getToken()}`,
-      },
-      success: (res: any) => {
-        if (errored) return
-        // 兜底 1：flush 残留的 lineBuffer（最后一块可能没换行符结尾）
-        if (lineBuffer.trim()) {
-          processLine(lineBuffer)
-          lineBuffer = ''
-        }
-        // 兜底 2：某些 mp-weixin 版本不会触发 onChunkReceived，整包塞 res.data
-        // 此时 progress UI 没动效但数据完整。res.data 可能是 string 或 object
-        if ((!ocrText || !analysis) && res?.data) {
-          const raw = typeof res.data === 'string' ? res.data : JSON.stringify(res.data)
-          // 拼到 lineBuffer 里再处理一次
-          const combined = lineBuffer + raw
-          lineBuffer = ''
-          const lines = combined.split('\n')
-          for (const line of lines) processLine(line)
-        }
-        if (!ocrText && !analysis) {
-          reject(new Error(`未收到任何响应（statusCode=${res?.statusCode}, dataLen=${JSON.stringify(res?.data || '').length}）`))
-          return
-        }
-        if (!ocrText) {
-          reject(new Error('OCR 步骤未完成'))
-          return
-        }
-        if (!analysis) {
-          // OCR 成功但 AI 没回来 —— 至少把 OCR 结果给用户看
-          resolve({ ocrText, analysis: '{"abnormal":[]}' })
-          return
-        }
-        resolve({ ocrText, analysis })
-      },
-      fail: (err: any) => reject(err),
-    })
-
-    task.onChunkReceived?.((res: any) => {
-      if (!res?.data || errored) return
-      lineBuffer += arrayBufferToUtf8(res.data as ArrayBuffer)
-      const lines = lineBuffer.split('\n')
-      lineBuffer = lines.pop() || ''
-      for (const line of lines) processLine(line)
-    })
-  })
-}
-
-function arrayBufferToUtf8(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf)
-  let result = ''
-  let i = 0
-  while (i < bytes.length) {
-    const b1 = bytes[i++]
-    if (b1 < 0x80) {
-      result += String.fromCharCode(b1)
-    } else if (b1 < 0xe0) {
-      const b2 = bytes[i++]
-      result += String.fromCharCode(((b1 & 0x1f) << 6) | (b2 & 0x3f))
-    } else if (b1 < 0xf0) {
-      const b2 = bytes[i++]
-      const b3 = bytes[i++]
-      result += String.fromCharCode(((b1 & 0x0f) << 12) | ((b2 & 0x3f) << 6) | (b3 & 0x3f))
-    } else {
-      const b2 = bytes[i++]
-      const b3 = bytes[i++]
-      const b4 = bytes[i++]
-      const cp = ((b1 & 0x07) << 18) | ((b2 & 0x3f) << 12) | ((b3 & 0x3f) << 6) | (b4 & 0x3f)
-      const off = cp - 0x10000
-      result += String.fromCharCode(0xd800 + (off >> 10), 0xdc00 + (off & 0x3ff))
-    }
-  }
-  return result
 }
 </script>
 
@@ -406,6 +316,7 @@ function arrayBufferToUtf8(buf: ArrayBuffer): string {
   font-size: 30rpx;
   font-weight: 600;
   color: #2D2A26;
+  flex: 1;
 }
 
 .steps {
@@ -419,9 +330,9 @@ function arrayBufferToUtf8(buf: ArrayBuffer): string {
   align-items: center;
   gap: 16rpx;
   opacity: 0.4;
+  transition: opacity 0.3s;
 }
-.step.active { opacity: 1; }
-.step.done { opacity: 1; }
+.step.active, .step.done { opacity: 1; }
 .step-icon {
   width: 48rpx;
   height: 48rpx;
@@ -434,34 +345,18 @@ function arrayBufferToUtf8(buf: ArrayBuffer): string {
   justify-content: center;
   flex-shrink: 0;
 }
-.step.active .step-icon {
-  background: #4A6741;
-  color: #FFFDF9;
-}
-.step.done .step-icon {
-  background: #4A6741;
-  color: #FFFDF9;
-}
+.step.active .step-icon { background: #4A6741; color: #FFFDF9; }
+.step.done .step-icon { background: #4A6741; color: #FFFDF9; }
 .step-label {
   font-size: 28rpx;
   color: #2D2A26;
 }
 
-.ocr-preview {
-  background: #FAF7F2;
-  border-radius: 16rpx;
-  padding: 20rpx;
-  margin-top: 8rpx;
-}
-.preview-title {
+.progress-tip {
   font-size: 22rpx;
-  color: #8B8680;
+  color: #B6B1A8;
   display: block;
-  margin-bottom: 8rpx;
-}
-.preview-text {
-  font-size: 24rpx;
-  color: #5A5650;
-  line-height: 1.5;
+  text-align: center;
+  margin-top: 8rpx;
 }
 </style>
