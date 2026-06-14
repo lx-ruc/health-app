@@ -54,7 +54,7 @@ export const useChatStore = defineStore('chat', () => {
       const fullContent = await streamChat(messages.value.slice(0, -1))
       messages.value[assistantIdx].content = fullContent
       setChatHistory(messages.value)
-      if (!fullContent) lastError.value = true
+      // 只有真正抛异常才算失败；fullContent 为空可能只是 AI 只返回了建议没前导文本
       return fullContent
     } catch (e: any) {
       // mp-weixin 失败时 errMsg 形如 "request:fail error:102"，把完整信息透出来方便定位
