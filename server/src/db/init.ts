@@ -98,6 +98,26 @@ export function initDb(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_chat_messages_openid ON chat_messages(openid, created_at);
     CREATE INDEX IF NOT EXISTS idx_plans_openid_week ON plans(openid, week_start);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_plans_unique ON plans(openid, week_start, title);
+
+    CREATE TABLE IF NOT EXISTS reminder_configs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      openid TEXT NOT NULL,
+      type TEXT NOT NULL,
+      time TEXT NOT NULL,
+      days_of_week TEXT,
+      enabled INTEGER DEFAULT 1,
+      subscribe_remaining INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(openid, type),
+      FOREIGN KEY (openid) REFERENCES users(openid)
+    );
+
+    CREATE TABLE IF NOT EXISTS wechat_access_token (
+      appid TEXT PRIMARY KEY,
+      token TEXT NOT NULL,
+      expires_at TEXT NOT NULL
+    );
   `)
 
   // Lightweight migration: add session_key columns if missing (legacy DBs)

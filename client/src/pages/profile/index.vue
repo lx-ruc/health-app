@@ -28,6 +28,16 @@
       </view>
     </view>
 
+    <view class="menu-card">
+      <view class="menu-row" @tap="goReminder">
+        <view class="menu-left">
+          <image class="icon-svg-sm" :src="getIcon('sparkle', '#4A6741')" mode="aspectFit" />
+          <text class="menu-label">提醒设置</text>
+        </view>
+        <text class="field-arrow">›</text>
+      </view>
+    </view>
+
     <view class="save-area">
       <view class="save-btn" @tap="save">
         <text class="save-text">保存修改</text>
@@ -85,6 +95,10 @@ async function save() {
   } catch {
     uni.showToast({ title: '保存失败', icon: 'none' })
   }
+}
+
+function goReminder() {
+  uni.navigateTo({ url: '/pages/reminder/index' })
 }
 </script>
 
@@ -191,4 +205,25 @@ async function save() {
   color: #FFFDF9;
   font-weight: 600;
 }
+
+.menu-card {
+  margin: 20rpx 30rpx;
+  background: #FFFDF9;
+  border-radius: 24rpx;
+  padding: 0 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(45, 42, 38, 0.04);
+}
+.menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 0;
+}
+.menu-left {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.icon-svg-sm { width: 32rpx; height: 32rpx; }
+.menu-label { font-size: 28rpx; color: #2D2A26; }
 </style>

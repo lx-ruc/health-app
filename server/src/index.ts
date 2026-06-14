@@ -10,6 +10,8 @@ import { analysisRoutes } from './routes/analysis.js'
 import { reportRoutes } from './routes/report.js'
 import { planRoutes } from './routes/plan.js'
 import { wechatRoutes } from './routes/wechat.js'
+import { reminderConfigRoutes } from './routes/reminder-config.js'
+import { startScheduler } from './scheduler/index.js'
 
 const app = Fastify({ logger: true })
 
@@ -27,10 +29,12 @@ app.register(analysisRoutes, { prefix: '/api/analysis' })
 app.register(reportRoutes, { prefix: '/api/report' })
 app.register(planRoutes, { prefix: '/api/plans' })
 app.register(wechatRoutes, { prefix: '/api/wechat' })
+app.register(reminderConfigRoutes, { prefix: '/api/reminder-config' })
 
 try {
   await app.listen({ port: 3000, host: '0.0.0.0' })
   console.log('Server running on http://localhost:3000')
+  await startScheduler(app)
 } catch (err) {
   app.log.error(err)
   process.exit(1)

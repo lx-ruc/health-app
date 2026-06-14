@@ -58,6 +58,12 @@
       }
     },
     {
+      "path": "pages/reminder/index",
+      "style": {
+        "navigationBarTitleText": "提醒设置"
+      }
+    },
+    {
       "path": "pages/history/index",
       "style": {
         "navigationBarTitleText": "历史记录"
