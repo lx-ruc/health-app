@@ -194,6 +194,34 @@ function streamAnalyze(image: string): Promise<{ ocrText: string; analysis: stri
     let lineBuffer = ''
     let errored = false
 
+    const processLine = (rawLine: string) => {
+      const trimmed = rawLine.trim()
+      if (!trimmed.startsWith('data:')) return
+      const payload = trimmed.slice(5).trim()
+      if (!payload) return
+      try {
+        const data = JSON.parse(payload)
+        if (data.step === 'ocr_start') {
+          currentStep.value = 'ocr'
+        } else if (data.step === 'ocr_done') {
+          ocrText = data.ocrText || ''
+          ocrPreview.value = ocrText
+          currentStep.value = 'ai'
+        } else if (data.step === 'ai_start') {
+          currentStep.value = 'ai'
+        } else if (data.step === 'ai_done') {
+          analysis = data.analysis || ''
+        } else if (data.step === 'done') {
+          ocrText = data.ocrText || ocrText
+          analysis = data.analysis || analysis
+          currentStep.value = 'done'
+        } else if (data.step === 'error') {
+          errored = true
+          reject(new Error(data.error + (data.detail ? `（${data.detail}）` : '')))
+        }
+      } catch {}
+    }
+
     const task: any = uni.request({
       url: `${API_BASE}/report/analyze`,
       method: 'POST' as any,
@@ -206,8 +234,22 @@ function streamAnalyze(image: string): Promise<{ ocrText: string; analysis: stri
       },
       success: () => {
         if (errored) return
-        if (!ocrText || !analysis) {
-          reject(new Error('响应不完整（OCR 或 AI 步骤未完成）'))
+        // 兜底：flush 残留的 lineBuffer（最后一块可能没换行符结尾）
+        if (lineBuffer.trim()) {
+          processLine(lineBuffer)
+          lineBuffer = ''
+        }
+        if (!ocrText && !analysis) {
+          reject(new Error('未收到任何响应（请检查网络或后端是否正常）'))
+          return
+        }
+        if (!ocrText) {
+          reject(new Error('OCR 步骤未完成'))
+          return
+        }
+        if (!analysis) {
+          // OCR 成功但 AI 没回来 —— 至少把 OCR 结果给用户看
+          resolve({ ocrText, analysis: '{"abnormal":[]}' })
           return
         }
         resolve({ ocrText, analysis })
@@ -220,33 +262,7 @@ function streamAnalyze(image: string): Promise<{ ocrText: string; analysis: stri
       lineBuffer += arrayBufferToUtf8(res.data as ArrayBuffer)
       const lines = lineBuffer.split('\n')
       lineBuffer = lines.pop() || ''
-      for (const line of lines) {
-        const trimmed = line.trim()
-        if (!trimmed.startsWith('data:')) continue
-        const payload = trimmed.slice(5).trim()
-        if (!payload) continue
-        try {
-          const data = JSON.parse(payload)
-          if (data.step === 'ocr_start') {
-            currentStep.value = 'ocr'
-          } else if (data.step === 'ocr_done') {
-            ocrText = data.ocrText || ''
-            ocrPreview.value = ocrText
-            currentStep.value = 'ai'
-          } else if (data.step === 'ai_start') {
-            currentStep.value = 'ai'
-          } else if (data.step === 'ai_done') {
-            analysis = data.analysis || ''
-          } else if (data.step === 'done') {
-            ocrText = data.ocrText || ocrText
-            analysis = data.analysis || analysis
-            currentStep.value = 'done'
-          } else if (data.step === 'error') {
-            errored = true
-            reject(new Error(data.error + (data.detail ? `（${data.detail}）` : '')))
-          }
-        } catch {}
-      }
+      for (const line of lines) processLine(line)
     })
   })
 }
