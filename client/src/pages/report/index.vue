@@ -22,6 +22,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { post } from '../../api'
+import { getToken } from '../../utils/storage'
+import { API_BASE } from '../../utils/constants'
 import { getIcon } from '../../utils/icons'
 
 const previewUrl = ref('')
@@ -118,21 +120,51 @@ async function analyze() {
     return
   }
   analyzing.value = true
+  uni.showLoading({ title: 'AI 分析中...', mask: true })
   try {
-    const res = await post<{ ocrText: string; analysis: string }>('/report/analyze', { image: imageBase64.value })
+    const res = await postRaw<{ ocrText: string; analysis: string }>('/report/analyze', {
+      image: imageBase64.value,
+    })
+    uni.hideLoading()
     uni.navigateTo({
       url: `/pages/report/result?ocrText=${encodeURIComponent(res.ocrText)}&analysis=${encodeURIComponent(res.analysis)}`,
     })
   } catch (err: any) {
-    const msg = err?.message || '未知错误'
+    uni.hideLoading()
+    // err.message 来自 HTTP 错误（如 422）；err.errMsg 来自 uni.request fail（网络层）
+    const msg = err?.message || err?.errMsg || '未知错误（请截图发我）'
     uni.showModal({
       title: 'AI 分析失败',
-      content: msg.slice(0, 200),
+      content: msg.slice(0, 300),
       showCancel: false,
     })
   } finally {
     analyzing.value = false
   }
+}
+
+/** 报告分析专用：长超时（OCR+AI 可能 60s+），不走全局 401 重试 */
+function postRaw<T = any>(url: string, data?: any): Promise<T> {
+  return new Promise((resolve, reject) => {
+    uni.request({
+      url: `${API_BASE}${url}`,
+      method: 'POST' as any,
+      data,
+      timeout: 180000,
+      header: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getToken()}`,
+      },
+      success: (res: any) => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(res.data as T)
+        } else {
+          reject(Object.assign(new Error(`HTTP ${res.statusCode}: ${JSON.stringify(res.data).slice(0, 300)}`), { errMsg: `HTTP ${res.statusCode}` }))
+        }
+      },
+      fail: (err: any) => reject(err),
+    })
+  })
 }
 </script>
 
