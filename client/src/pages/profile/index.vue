@@ -4,7 +4,12 @@
       <view class="avatar-circle">
         <image class="icon-svg-avatar" :src="getIcon(profile.gender === '男' ? 'male' : 'female', '#4A6741')" mode="aspectFit" />
       </view>
-      <text class="profile-name">{{ profile.occupation || '未设置' }}</text>
+      <!-- #ifdef MP-WEIXIN -->
+      <view class="profile-name"><open-data type="userNickName" /></view>
+      <!-- #endif -->
+      <!-- #ifndef MP-WEIXIN -->
+      <text class="profile-name">健康用户</text>
+      <!-- #endif -->
       <text class="profile-sub">{{ profile.ageRange || '未填写' }} · {{ profile.heightRange || '--' }}</text>
     </view>
 

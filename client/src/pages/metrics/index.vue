@@ -7,7 +7,7 @@
       </view>
       <text class="empty-title">开始追踪你的健康指标</text>
       <text class="empty-desc">选择想要记录的指标，持续追踪变化趋势</text>
-      <view class="empty-btn" @tap="goSetup">
+      <view class="empty-btn" hover-class="empty-btn-hover" @tap="goSetup">
         <text class="empty-btn-text">选择指标</text>
       </view>
     </view>
@@ -119,6 +119,11 @@ function goSetup() {
       const newMetrics = [...new Set([...metricStore.selectedMetrics, key])]
       metricStore.saveConfig(newMetrics)
     },
+    fail: (err) => {
+      // 用户主动取消时 errMsg 包含 'cancel'，不算错
+      if (err?.errMsg?.includes('cancel')) return
+      uni.showToast({ title: '打开选择失败', icon: 'none' })
+    },
   })
 }
 
@@ -198,6 +203,7 @@ function goHistory() { uni.navigateTo({ url: '/pages/history/index' }) }
 .empty-title { font-size: 32rpx; font-weight: 600; color: #2D2A26; margin-bottom: 10rpx; }
 .empty-desc { font-size: 26rpx; color: #8B8680; margin-bottom: 40rpx; }
 .empty-btn { background: #4A6741; padding: 20rpx 60rpx; border-radius: 24rpx; }
+.empty-btn-hover { background: #3d5635; opacity: 0.9; }
 .empty-btn-text { font-size: 28rpx; color: #FFFDF9; font-weight: 500; }
 
 .metric-list { display: flex; flex-direction: column; gap: 16rpx; margin-bottom: 20rpx; }

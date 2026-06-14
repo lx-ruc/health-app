@@ -24,6 +24,8 @@ export const useChatStore = defineStore('chat', () => {
   const sending = ref(false)
   const currentSuggestions = ref<Suggestion[]>([])
   const suggestionsConsumed = ref(false)
+  const lastError = ref(false)
+  const lastUserMessage = ref<string | null>(null)
 
   function loadHistory() {
     messages.value = getChatHistory<ChatMessage>() || []
@@ -41,6 +43,8 @@ export const useChatStore = defineStore('chat', () => {
     // Reset suggestion state for the new round
     currentSuggestions.value = []
     suggestionsConsumed.value = false
+    lastUserMessage.value = userContent
+    lastError.value = false
 
     sending.value = true
     messages.value.push({ role: 'assistant', content: '' })
@@ -50,14 +54,31 @@ export const useChatStore = defineStore('chat', () => {
       const fullContent = await streamChat(messages.value.slice(0, -1))
       messages.value[assistantIdx].content = fullContent
       setChatHistory(messages.value)
+      if (!fullContent) lastError.value = true
       return fullContent
-    } catch {
-      messages.value[assistantIdx].content = '分析失败，请重试。'
+    } catch (e: any) {
+      const reason = e?.errMsg || e?.message || '网络错误'
+      messages.value[assistantIdx].content = `分析失败：${reason}。请稍后重试。`
       setChatHistory(messages.value)
+      lastError.value = true
       return ''
     } finally {
       sending.value = false
     }
+  }
+
+  /** Retry the last user message: pop the failed assistant reply + resend. */
+  async function retryLast(): Promise<string> {
+    if (!lastUserMessage.value) return ''
+    // 移除最后一条 assistant（错误占位）
+    if (messages.value.length && messages.value[messages.value.length - 1].role === 'assistant') {
+      messages.value.pop()
+    }
+    // 同时移除原 user 消息，sendMessage 会重新 push
+    if (messages.value.length && messages.value[messages.value.length - 1].role === 'user') {
+      messages.value.pop()
+    }
+    return sendMessage(lastUserMessage.value)
   }
 
   async function generateFirstAnalysis(): Promise<string> {
@@ -85,13 +106,24 @@ export const useChatStore = defineStore('chat', () => {
 
   async function streamChat(allMessages: ChatMessage[]): Promise<string> {
     const token = getToken()
+    const body = JSON.stringify({ messages: allMessages.slice(-20) })
+
+    // #ifdef MP-WEIXIN
+    return streamChatMpWeixin(token, body)
+    // #endif
+    // #ifndef MP-WEIXIN
+    return streamChatFetch(token, body)
+    // #endif
+  }
+
+  async function streamChatFetch(token: string, body: string): Promise<string> {
     const res = await fetch(`${API_BASE}/analysis/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ messages: allMessages.slice(-20) }),
+      body,
     })
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -127,10 +159,79 @@ export const useChatStore = defineStore('chat', () => {
         } catch {}
       }
     }
-
-    // Final pass in case the marker arrived in the last chunk without an update trigger
     updateAssistantContent(fullContent)
     return getDisplayContent(fullContent)
+  }
+
+  function streamChatMpWeixin(token: string, body: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      let fullContent = ''
+      let lineBuffer = ''
+      const task: any = uni.request({
+        url: `${API_BASE}/analysis/chat`,
+        method: 'POST',
+        header: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        data: body,
+        enableChunked: true,
+        responseType: 'arraybuffer',
+        success: () => {
+          updateAssistantContent(fullContent)
+          resolve(getDisplayContent(fullContent))
+        },
+        fail: (err: any) => reject(err),
+      })
+
+      task.onChunkReceived?.((res: any) => {
+        if (!res?.data) return
+        const text = arrayBufferToUtf8(res.data as ArrayBuffer)
+        lineBuffer += text
+        const lines = lineBuffer.split('\n')
+        lineBuffer = lines.pop() || ''
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed.startsWith('data:')) continue
+          const payload = trimmed.slice(5).trim()
+          if (payload === '[DONE]') continue
+          try {
+            const parsed = JSON.parse(payload)
+            if (parsed.content) {
+              fullContent += parsed.content
+              updateAssistantContent(fullContent)
+            }
+          } catch {}
+        }
+      })
+    })
+  }
+
+  function arrayBufferToUtf8(buf: ArrayBuffer): string {
+    const bytes = new Uint8Array(buf)
+    let result = ''
+    let i = 0
+    while (i < bytes.length) {
+      const b1 = bytes[i++]
+      if (b1 < 0x80) {
+        result += String.fromCharCode(b1)
+      } else if (b1 < 0xe0) {
+        const b2 = bytes[i++]
+        result += String.fromCharCode(((b1 & 0x1f) << 6) | (b2 & 0x3f))
+      } else if (b1 < 0xf0) {
+        const b2 = bytes[i++]
+        const b3 = bytes[i++]
+        result += String.fromCharCode(((b1 & 0x0f) << 12) | ((b2 & 0x3f) << 6) | (b3 & 0x3f))
+      } else {
+        const b2 = bytes[i++]
+        const b3 = bytes[i++]
+        const b4 = bytes[i++]
+        const cp = ((b1 & 0x07) << 18) | ((b2 & 0x3f) << 12) | ((b3 & 0x3f) << 6) | (b4 & 0x3f)
+        const off = cp - 0x10000
+        result += String.fromCharCode(0xd800 + (off >> 10), 0xdc00 + (off & 0x3ff))
+      }
+    }
+    return result
   }
 
   /** Strip the [[SUGGESTIONS]] marker + JSON tail from content shown to the user,
@@ -174,9 +275,12 @@ export const useChatStore = defineStore('chat', () => {
     sending,
     currentSuggestions,
     suggestionsConsumed,
+    lastError,
+    lastUserMessage,
     loadHistory,
     clearHistory,
     sendMessage,
+    retryLast,
     generateFirstAnalysis,
     addToPlan,
   }

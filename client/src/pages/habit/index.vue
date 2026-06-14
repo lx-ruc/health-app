@@ -267,6 +267,7 @@ async function submit() {
 
 .form-input {
   flex: 1;
+  min-width: 0;
   text-align: right;
   font-size: 28rpx;
   color: #2D2A26;
@@ -327,6 +328,7 @@ async function submit() {
 
 .diet-input {
   width: 100%;
+  box-sizing: border-box;
   min-height: 100rpx;
   font-size: 28rpx;
   padding: 16rpx;

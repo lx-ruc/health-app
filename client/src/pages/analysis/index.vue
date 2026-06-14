@@ -1,7 +1,7 @@
 <template>
   <view class="chat-page">
     <!-- Custom header -->
-    <view class="chat-header">
+    <view class="chat-header" :style="{ paddingTop: headerPaddingTop + 'px', paddingBottom: '20rpx' }">
       <text class="header-title">AI 健康顾问</text>
       <view class="header-action" @tap="startNew">
         <text class="action-text">新对话</text>
@@ -43,6 +43,12 @@
         <view class="bubble">
           <rich-text v-if="msg.role === 'assistant'" :nodes="renderAssistant(msg, idx)" />
           <text v-else class="bubble-text" selectable>{{ msg.content }}</text>
+        </view>
+      </view>
+
+      <view v-if="chatStore.lastError" class="retry-row">
+        <view class="retry-btn" :class="{ disabled: chatStore.sending }" @tap="retry">
+          <text class="retry-btn-text">{{ chatStore.sending ? '重试中...' : '重试' }}</text>
         </view>
       </view>
 
@@ -109,6 +115,17 @@ import { md } from '../../utils/markdown'
 const chatStore = useChatStore()
 const inputText = ref('')
 const scrollTop = ref(0)
+const headerPaddingTop = ref(40)
+
+// mp-weixin: 算胶囊按钮底部位置作为 header 顶部 padding，避免被胶囊挡住
+;(() => {
+  // #ifdef MP-WEIXIN
+  try {
+    const menu = (uni as any).getMenuButtonBoundingClientRect?.()
+    if (menu?.bottom) headerPaddingTop.value = menu.bottom + 8
+  } catch {}
+  // #endif
+})()
 
 // Suggestion panel state — default all selected to lower friction
 const selected = ref<boolean[]>([])
@@ -262,6 +279,16 @@ async function ask(question: string) {
   }
 }
 
+async function retry() {
+  if (chatStore.sending) return
+  try {
+    await chatStore.retryLast()
+    scrollToBottom()
+  } catch {
+    uni.showToast({ title: '重试失败', icon: 'none' })
+  }
+}
+
 function startNew() {
   uni.showModal({
     title: '开始新对话',
@@ -308,6 +335,19 @@ function scrollToBottom() {
   background: rgba(74, 103, 65, 0.1);
   border-radius: 20rpx;
 }
+
+.retry-row {
+  display: flex;
+  justify-content: center;
+  padding: 16rpx 0;
+}
+.retry-btn {
+  padding: 14rpx 56rpx;
+  background: #4A6741;
+  border-radius: 24rpx;
+}
+.retry-btn.disabled { opacity: 0.6; }
+.retry-btn-text { font-size: 26rpx; color: #FFFDF9; font-weight: 500; }
 
 .action-text {
   font-size: 24rpx;
