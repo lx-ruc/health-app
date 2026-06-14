@@ -19,6 +19,8 @@ export function initDb(): Database.Database {
       weight_range TEXT,
       occupation TEXT,
       diseases TEXT DEFAULT '[]',
+      session_key TEXT,
+      session_key_updated_at TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
@@ -97,6 +99,16 @@ export function initDb(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_plans_openid_week ON plans(openid, week_start);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_plans_unique ON plans(openid, week_start, title);
   `)
+
+  // Lightweight migration: add session_key columns if missing (legacy DBs)
+  const userCols = db.prepare('PRAGMA table_info(users)').all() as { name: string }[]
+  const hasSessionKey = userCols.some((c) => c.name === 'session_key')
+  if (!hasSessionKey) {
+    db.exec(`
+      ALTER TABLE users ADD COLUMN session_key TEXT;
+      ALTER TABLE users ADD COLUMN session_key_updated_at TEXT;
+    `)
+  }
 
   return db
 }

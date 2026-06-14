@@ -13,6 +13,19 @@
     </view>
 
     <view v-else class="metric-list">
+      <!-- #ifdef MP-WEIXIN -->
+      <view v-if="hasSteps" class="sync-card" :class="{ syncing: syncing }" @tap="syncSteps">
+        <view class="sync-icon-wrap">
+          <image class="icon-svg" :src="getIcon('sparkle', '#4A6741')" mode="aspectFit" />
+        </view>
+        <view class="sync-body">
+          <text class="sync-name">{{ syncing ? '同步中...' : '同步微信步数' }}</text>
+          <text class="sync-desc">一键拉取最近 30 天步数</text>
+        </view>
+        <text class="sync-arrow">›</text>
+      </view>
+      <!-- #endif -->
+
       <view v-for="metric in activeMetrics" :key="metric.key" class="metric-card" @tap="goRecord(metric.key)">
         <view class="metric-left">
           <text class="metric-name">{{ metric.label }}</text>
@@ -69,12 +82,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useMetricStore } from '../../stores/metric'
 import { METRIC_OPTIONS } from '../../utils/constants'
 import { getIcon } from '../../utils/icons'
+import { post, doLogin } from '../../api'
 
 const metricStore = useMetricStore()
+const syncing = ref(false)
 
 onMounted(() => {
   metricStore.fetchConfig()
@@ -84,6 +99,8 @@ onMounted(() => {
 const activeMetrics = computed(() =>
   METRIC_OPTIONS.filter((m) => metricStore.selectedMetrics.includes(m.key)),
 )
+
+const hasSteps = computed(() => metricStore.selectedMetrics.includes('steps'))
 
 function getLatest(key: string): string {
   const record = metricStore.records.find((r: any) => r.metric_key === key)
@@ -104,6 +121,68 @@ function goSetup() {
     },
   })
 }
+
+// #ifdef MP-WEIXIN
+async function syncSteps() {
+  if (syncing.value) return
+  syncing.value = true
+  try {
+    await ensureWerunAuth()
+    const werun = await new Promise<any>((resolve, reject) => {
+      uni.getWeRunData({ success: resolve, fail: reject })
+    })
+    await postWerunWithRetry({ encryptedData: werun.encryptedData, iv: werun.iv })
+    uni.showToast({ title: '同步成功', icon: 'success' })
+    await metricStore.fetchRecords('steps', 30)
+  } catch (e: any) {
+    if (e?.errMsg?.includes('auth deny') || e?.errMsg?.includes('cancel')) return
+    uni.showToast({ title: '同步失败，请重试', icon: 'none' })
+  } finally {
+    syncing.value = false
+  }
+}
+
+async function ensureWerunAuth(): Promise<void> {
+  const setting = await new Promise<any>((resolve, reject) => {
+    uni.getSetting({ success: resolve, fail: reject })
+  })
+  if (setting.authSetting['scope.werun']) return
+  try {
+    await new Promise<void>((resolve, reject) => {
+      uni.authorize({ scope: 'scope.werun', success: resolve, fail: reject })
+    })
+  } catch {
+    await new Promise<void>((resolve) => {
+      uni.showModal({
+        title: '需要授权微信运动',
+        content: '同步步数需要授权微信运动数据，前往设置开启？',
+        confirmText: '去设置',
+        success: (res) => {
+          if (res.confirm) {
+            uni.openSetting({ success: () => resolve(), fail: () => resolve() })
+          } else {
+            resolve()
+          }
+        },
+        fail: () => resolve(),
+      })
+    })
+    throw new Error('auth required')
+  }
+}
+
+async function postWerunWithRetry(body: { encryptedData: string; iv: string }, retried = false): Promise<any> {
+  try {
+    return await post('/wechat/werun', body)
+  } catch (e: any) {
+    if (!retried && e?.message?.includes('HTTP 440')) {
+      await doLogin()
+      return postWerunWithRetry(body, true)
+    }
+    throw e
+  }
+}
+// #endif
 
 function goAnalysis() { uni.switchTab({ url: '/pages/analysis/index' }) }
 function goReport() { uni.navigateTo({ url: '/pages/report/index' }) }
@@ -163,4 +242,34 @@ function goHistory() { uni.navigateTo({ url: '/pages/history/index' }) }
 .tool-name { display: block; font-size: 28rpx; font-weight: 600; color: #2D2A26; }
 .tool-desc { display: block; font-size: 24rpx; color: #8B8680; margin-top: 4rpx; }
 .tool-arrow { font-size: 36rpx; color: #D4CFC7; margin-left: 8rpx; }
+
+.sync-card {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #F5F0E8 0%, #FFFDF9 100%);
+  border-radius: 24rpx;
+  padding: 28rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(45, 42, 38, 0.04);
+  border: 1rpx solid rgba(74, 103, 65, 0.1);
+}
+
+.sync-card.syncing { opacity: 0.6; }
+
+.sync-icon-wrap {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 18rpx;
+  background: rgba(74, 103, 65, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+
+.sync-body { flex: 1; }
+.sync-name { display: block; font-size: 28rpx; font-weight: 600; color: #2D2A26; }
+.sync-desc { display: block; font-size: 24rpx; color: #8B8680; margin-top: 4rpx; }
+.sync-arrow { font-size: 36rpx; color: #4A6741; margin-left: 8rpx; }
 </style>

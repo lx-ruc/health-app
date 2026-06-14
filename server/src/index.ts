@@ -9,6 +9,7 @@ import { metricRoutes } from './routes/metric.js'
 import { analysisRoutes } from './routes/analysis.js'
 import { reportRoutes } from './routes/report.js'
 import { planRoutes } from './routes/plan.js'
+import { wechatRoutes } from './routes/wechat.js'
 
 const app = Fastify({ logger: true })
 
@@ -25,6 +26,7 @@ app.register(metricRoutes, { prefix: '/api/metrics' })
 app.register(analysisRoutes, { prefix: '/api/analysis' })
 app.register(reportRoutes, { prefix: '/api/report' })
 app.register(planRoutes, { prefix: '/api/plans' })
+app.register(wechatRoutes, { prefix: '/api/wechat' })
 
 try {
   await app.listen({ port: 3000, host: '0.0.0.0' })

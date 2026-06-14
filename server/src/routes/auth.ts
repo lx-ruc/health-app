@@ -33,7 +33,12 @@ export async function authRoutes(app: FastifyInstance) {
     const wxUrl = `https://api.weixin.qq.com/sns/jscode2session?appid=${WX_APPID}&secret=${WX_SECRET}&js_code=${code}&grant_type=authorization_code`
 
     const res = await fetch(wxUrl)
-    const data = await res.json() as { openid?: string; errcode?: number; errmsg?: string }
+    const data = await res.json() as {
+      openid?: string
+      session_key?: string
+      errcode?: number
+      errmsg?: string
+    }
 
     if (!data.openid) {
       return reply.status(401).send({ error: 'wx login failed', detail: data })
@@ -47,6 +52,11 @@ export async function authRoutes(app: FastifyInstance) {
     const existing = db.prepare('SELECT openid FROM users WHERE openid = ?').get(openid)
     if (!existing) {
       db.prepare('INSERT INTO users (openid) VALUES (?)').run(openid)
+    }
+    if (data.session_key) {
+      db.prepare(
+        `UPDATE users SET session_key = ?, session_key_updated_at = datetime('now') WHERE openid = ?`,
+      ).run(data.session_key, openid)
     }
 
     return { token }
