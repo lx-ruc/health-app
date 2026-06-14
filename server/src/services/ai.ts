@@ -129,3 +129,72 @@ export async function analyzeReport(ocrText: string): Promise<string> {
 
   return res.data.choices[0].message.content
 }
+
+/**
+ * 流式版体检报告分析：把 DeepSeek 的 token 流直接转发给客户端。
+ * onToken(token, fullContent) 每收到一个 token 调用一次。
+ */
+export async function analyzeReportStream(
+  ocrText: string,
+  onToken: (token: string, fullContent: string) => void,
+): Promise<string> {
+  const response = await axios.post(
+    `${API_BASE_URL}/chat/completions`,
+    {
+      model: CHAT_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: '你是一个体检报告分析助手。分析OCR识别出的体检报告文字，提取所有异常指标，对每个异常指标给出：指标名称、实际值、参考范围、偏离程度、可能的健康影响、建议。用JSON格式返回：{"abnormal":[{"name":"","value":"","reference":"","deviation":"","impact":"","suggestion":""}]}',
+        },
+        {
+          role: 'user',
+          content: `以下是OCR识别的体检报告内容，请分析异常指标：\n\n${ocrText}`,
+        },
+      ],
+      max_tokens: 2048,
+      temperature: 0.3,
+      stream: true,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: 120000,
+      responseType: 'stream',
+    },
+  )
+
+  return new Promise<string>((resolve, reject) => {
+    let fullContent = ''
+    let lineBuffer = ''
+
+    response.data.on('data', (chunk: Buffer) => {
+      lineBuffer += chunk.toString()
+      const lines = lineBuffer.split('\n')
+      lineBuffer = lines.pop() || ''
+
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (!trimmed || !trimmed.startsWith('data:')) continue
+        const payload = trimmed.slice(5).trim()
+        if (payload === '[DONE]') {
+          resolve(fullContent)
+          return
+        }
+        try {
+          const parsed = JSON.parse(payload)
+          const delta = parsed.choices?.[0]?.delta?.content
+          if (delta) {
+            fullContent += delta
+            onToken(delta, fullContent)
+          }
+        } catch {}
+      }
+    })
+
+    response.data.on('end', () => resolve(fullContent))
+    response.data.on('error', (err: Error) => reject(err))
+  })
+}
