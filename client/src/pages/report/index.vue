@@ -12,8 +12,8 @@
     </view>
 
     <view v-if="previewUrl" class="analyze-area">
-      <view class="analyze-btn" :class="{ loading: analyzing }" @tap="analyze">
-        <text class="analyze-text">{{ analyzing ? '分析中...' : '开始 AI 分析' }}</text>
+      <view class="analyze-btn" :class="{ loading: analyzing || reading }" @tap="analyze">
+        <text class="analyze-text">{{ analyzing ? '分析中...' : reading ? '读取图片...' : '开始 AI 分析' }}</text>
       </view>
     </view>
   </view>
@@ -27,27 +27,54 @@ import { getIcon } from '../../utils/icons'
 const previewUrl = ref('')
 const imageBase64 = ref('')
 const analyzing = ref(false)
+const reading = ref(false)
 
 function chooseImage() {
   uni.chooseImage({
     count: 1,
     sourceType: ['album', 'camera'],
     success: (res) => {
-      const tempPath = res.tempFilePaths[0]
+      const tempPath = res.tempFilePaths?.[0] || (res.tempFiles as any)?.[0]?.path
+      if (!tempPath) {
+        uni.showToast({ title: '选图失败，请重试', icon: 'none' })
+        return
+      }
       previewUrl.value = tempPath
-      uni.getFileSystemManager().readFile({
+      imageBase64.value = '' // 重置，避免拿上次的数据
+      reading.value = true
+      const fsm = (uni as any).getFileSystemManager?.()
+      if (!fsm) {
+        uni.showToast({ title: '当前环境不支持读取文件', icon: 'none' })
+        reading.value = false
+        return
+      }
+      fsm.readFile({
         filePath: tempPath,
         encoding: 'base64',
-        success: (fileRes) => {
-          const ext = tempPath.endsWith('.png') ? 'image/png' : 'image/jpeg'
+        success: (fileRes: any) => {
+          const ext = tempPath.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg'
           imageBase64.value = `data:${ext};base64,${fileRes.data as string}`
+          reading.value = false
+        },
+        fail: (err: any) => {
+          reading.value = false
+          uni.showToast({ title: '图片读取失败：' + (err?.errMsg || '未知'), icon: 'none', duration: 3000 })
         },
       })
+    },
+    fail: (err: any) => {
+      if (!err?.errMsg?.includes('cancel')) {
+        uni.showToast({ title: '选图失败', icon: 'none' })
+      }
     },
   })
 }
 
 async function analyze() {
+  if (reading.value) {
+    uni.showToast({ title: '图片读取中，请稍候', icon: 'none' })
+    return
+  }
   if (!imageBase64.value) {
     uni.showToast({ title: '请先选择图片', icon: 'none' })
     return
