@@ -3,6 +3,11 @@ import axios from 'axios'
 const SILICONFLOW_API_KEY = process.env.SILICONFLOW_API_KEY || ''
 const SILICONFLOW_BASE_URL = 'https://api.siliconflow.cn/v1'
 
+/**
+ * 用 SiliconFlow 提供的 PaddleOCR-VL-1.5 模型做 OCR。
+ * 文档参考：/Users/lixin/xhs_local/obsidian/大模型工具说明/PaddleOCR-VL-1.5.md
+ * 推荐最简 prompt，长 prompt 会触发模型幻觉（实测乱码）。
+ */
 export async function ocrImage(base64Image: string): Promise<string> {
   const imageUrl = base64Image.startsWith('data:')
     ? base64Image
@@ -17,7 +22,7 @@ export async function ocrImage(base64Image: string): Promise<string> {
           role: 'user',
           content: [
             { type: 'image_url', image_url: { url: imageUrl } },
-            { type: 'text', text: '请识别这张体检报告图片中的所有文字内容，包括指标名称、数值、单位、参考范围，按原始排版输出。' },
+            { type: 'text', text: 'OCR this image.' },
           ],
         },
       ],
