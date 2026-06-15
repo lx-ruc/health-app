@@ -61,6 +61,12 @@
       }
     },
     {
+      "path": "pages/profile/history",
+      "style": {
+        "navigationBarTitleText": "病史编辑"
+      }
+    },
+    {
       "path": "pages/history/index",
       "style": {
         "navigationBarTitleText": "历史记录"

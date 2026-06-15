@@ -11,8 +11,8 @@
           <text class="value">{{ profile[field.key] || '未填写' }}</text>
           <text class="arrow">></text>
         </picker>
-        <view v-else class="multi-select" @tap="showMultiSelect(field)">
-          <text class="value">{{ formatDiseases(profile[field.key]) }}</text>
+        <view v-else class="multi-select" @tap="goHistory">
+          <text class="value">{{ formatList(profile[field.key]) }}</text>
           <text class="arrow">></text>
         </view>
       </view>
@@ -25,7 +25,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '../../stores/user'
-import { GENDER_OPTIONS, AGE_OPTIONS, OCCUPATION_OPTIONS, DISEASE_OPTIONS } from '../../utils/constants'
+import { GENDER_OPTIONS, AGE_OPTIONS, OCCUPATION_OPTIONS } from '../../utils/constants'
 
 const userStore = useUserStore()
 const profile = ref<any>({ ...userStore.profile })
@@ -36,13 +36,16 @@ onMounted(() => {
   })
 })
 
+// 病史（慢性病/过敏/手术）在 history 页统一编辑，这里展示并跳转
 const fields = [
   { key: 'gender', label: '性别', options: [...GENDER_OPTIONS] },
   { key: 'ageRange', label: '年龄段', options: [...AGE_OPTIONS] },
   { key: 'heightRange', label: '身高', options: generateRange(150, 195, 5) },
   { key: 'weightRange', label: '体重', options: generateRange(40, 120, 5) },
   { key: 'occupation', label: '职业', options: [...OCCUPATION_OPTIONS] },
-  { key: 'diseases', label: '病史', options: [...DISEASE_OPTIONS], multiple: true },
+  { key: 'diseases', label: '慢性病', multiple: true },
+  { key: 'allergies', label: '过敏史', multiple: true },
+  { key: 'surgeryHistory', label: '手术史', multiple: true },
 ]
 
 function generateRange(min: number, max: number, step: number): string[] {
@@ -59,21 +62,13 @@ function onPickerChange(key: string, e: any) {
   }
 }
 
-function showMultiSelect(field: any) {
-  const current = profile.value[field.key] || []
-  const selected = current.map((v: string) => field.options.indexOf(v)).filter((i: number) => i >= 0)
-  // Simple approach: use uni.showActionSheet or a custom component
-  // For v1, toggle the first unselected disease
-  uni.showModal({
-    title: field.label,
-    content: `当前: ${formatDiseases(current)}\n请在引导页修改，或逐项编辑`,
-    showCancel: false,
-  })
-}
-
-function formatDiseases(val: string[] | undefined): string {
+function formatList(val: string[] | undefined): string {
   if (!val?.length) return '未填写'
   return val.join('、')
+}
+
+function goHistory() {
+  uni.navigateTo({ url: '/pages/profile/history' })
 }
 
 async function save() {

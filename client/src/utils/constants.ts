@@ -26,6 +26,30 @@ export const DISEASE_OPTIONS = [
   '其他',
 ] as const
 
+export const ALLERGY_OPTIONS = [
+  '无',
+  '海鲜',
+  '花粉',
+  '尘螨',
+  '药物',
+  '牛奶',
+  '鸡蛋',
+  '坚果',
+  '宠物毛屑',
+  '其他',
+] as const
+
+export const SURGERY_OPTIONS = [
+  '无',
+  '阑尾切除',
+  '胆囊切除',
+  '扁桃体切除',
+  '骨折手术',
+  '剖腹产',
+  '甲状腺手术',
+  '其他',
+] as const
+
 export interface MetricItem {
   key: string
   label: string

@@ -19,6 +19,8 @@ export function initDb(): Database.Database {
       weight_range TEXT,
       occupation TEXT,
       diseases TEXT DEFAULT '[]',
+      allergies TEXT DEFAULT '[]',
+      surgery_history TEXT DEFAULT '[]',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
@@ -92,6 +94,16 @@ export function initDb(): Database.Database {
   if (!metricConfigsCols.some((c) => c.name === 'created_at')) {
     db.exec('ALTER TABLE metric_configs ADD COLUMN created_at TEXT')
     db.exec('UPDATE metric_configs SET created_at = updated_at WHERE created_at IS NULL')
+  }
+
+  // 幂等迁移：为旧库的 users 补 allergies / surgery_history 列
+  // 与 metric_configs.created_at 不同：'[]' 是常量默认值，SQLite 允许且会自动回填存量行。
+  const usersCols = db.prepare('PRAGMA table_info(users)').all() as Array<{ name: string }>
+  if (!usersCols.some((c) => c.name === 'allergies')) {
+    db.exec("ALTER TABLE users ADD COLUMN allergies TEXT DEFAULT '[]'")
+  }
+  if (!usersCols.some((c) => c.name === 'surgery_history')) {
+    db.exec("ALTER TABLE users ADD COLUMN surgery_history TEXT DEFAULT '[]'")
   }
 
   return db

@@ -17,6 +17,8 @@ export async function userRoutes(app: FastifyInstance) {
       weightRange: user.weight_range,
       occupation: user.occupation,
       diseases: JSON.parse(user.diseases || '[]'),
+      allergies: JSON.parse(user.allergies || '[]'),
+      surgeryHistory: JSON.parse(user.surgery_history || '[]'),
     }
   })
 
@@ -31,13 +33,16 @@ export async function userRoutes(app: FastifyInstance) {
       weightRange?: string
       occupation?: string
       diseases?: string[]
+      allergies?: string[]
+      surgeryHistory?: string[]
     }
 
     const db = (app as any).db
     db.prepare(`
       UPDATE users SET
         gender = ?, age_range = ?, height_range = ?, weight_range = ?,
-        occupation = ?, diseases = ?, updated_at = datetime('now')
+        occupation = ?, diseases = ?, allergies = ?, surgery_history = ?,
+        updated_at = datetime('now')
       WHERE openid = ?
     `).run(
       body.gender || null,
@@ -46,6 +51,8 @@ export async function userRoutes(app: FastifyInstance) {
       body.weightRange || null,
       body.occupation || null,
       JSON.stringify(body.diseases || []),
+      JSON.stringify(body.allergies || []),
+      JSON.stringify(body.surgeryHistory || []),
       openid,
     )
 
