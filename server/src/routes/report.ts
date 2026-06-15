@@ -35,7 +35,7 @@ export async function reportRoutes(app: FastifyInstance) {
       const db = (app as any).db
       db.prepare(
         'INSERT INTO reports (openid, image_base64, ocr_text, analysis_result) VALUES (?, ?, ?, ?)'
-      ).run(openid, image.slice(0, 100), ocrText, analysis)
+      ).run(openid, image, ocrText, analysis)
 
       return { ocrText, analysis }
     } catch (err: any) {
