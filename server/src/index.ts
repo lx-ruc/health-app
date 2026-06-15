@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import Fastify from 'fastify'
+import Fastify, { FastifyError } from 'fastify'
 import cors from '@fastify/cors'
 import { initDb } from './db/init.js'
 import { authRoutes } from './routes/auth.js'
@@ -10,6 +10,34 @@ import { analysisRoutes } from './routes/analysis.js'
 import { reportRoutes } from './routes/report.js'
 
 const app = Fastify({ logger: true })
+
+// 兜底：捕获路由/钩子之外抛出的异常，避免直接崩溃进程
+// （Node 15+ 默认会把 unhandledRejection 当作致命错误终止进程）
+process.on('uncaughtException', (err) => {
+  app.log.error({ err }, 'uncaughtException')
+})
+process.on('unhandledRejection', (reason) => {
+  app.log.error({ reason }, 'unhandledRejection')
+})
+
+// 全局错误处理：路由/钩子中未捕获的异常统一在此返回，避免泄露内部细节
+app.setErrorHandler((err: FastifyError, request, reply) => {
+  const statusCode =
+    err.statusCode && err.statusCode >= 400 && err.statusCode < 600
+      ? err.statusCode
+      : 500
+  request.log.error({ err }, 'request error')
+  // 5xx 对外只返回通用提示，不泄露堆栈/内部信息
+  if (statusCode >= 500) {
+    return reply.status(statusCode).send({ error: '内部服务器错误' })
+  }
+  return reply.status(statusCode).send({ error: err.message })
+})
+
+// 统一 404 响应格式
+app.setNotFoundHandler((request, reply) => {
+  reply.status(404).send({ error: 'not found', path: request.url })
+})
 
 // CORS: 默认仅允许 localhost；生产环境通过 CORS_ORIGINS（逗号分隔）显式配置允许的来源
 const configuredOrigins = (process.env.CORS_ORIGINS || '')
