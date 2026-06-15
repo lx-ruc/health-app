@@ -141,6 +141,6 @@ with open("image.png", "rb") as f:
 - 测试结果：成功识别，消耗 185 tokens（输入 174 + 输出 11）
 - 状态：**可用，免费**
 
-silicon flow的API KEY是sk-gaogloccvmlespecanllaytqbblifhkujwbbkflhcivcvdvi
+SiliconFlow 的 API Key 已配置在 `server/.env`（变量 `SILICONFLOW_API_KEY`），请勿提交到代码仓库。
 
-### 2.在分析用户的生活习惯和指标并给出建议时，使用deepseek模型，apikey是sk-84091369dbe74d5ba04a8ef7093f0889，接口文档是https://api-docs.deepseek.com/zh-cn/，使用模型：deepseek-v4-flash。
+### 2.在分析用户的生活习惯和指标并给出建议时，使用deepseek模型，API Key 已配置在 `server/.env`（变量 `DEEPSEEK_API_KEY`），接口文档是https://api-docs.deepseek.com/zh-cn/，使用模型：deepseek-v4-flash。
