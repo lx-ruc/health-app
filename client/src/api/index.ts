@@ -70,9 +70,10 @@ async function tryRefreshToken(): Promise<boolean> {
 }
 
 export async function doLogin(): Promise<string> {
-  // H5 dev mode: uni.login always fails, use dev-login directly
-  // @ts-ignore
-  if (typeof window !== 'undefined') {
+  // H5 + mp-weixin 开发/体验版都用 dev-login（避免 WX_SECRET 验证不过）
+  // 正式版（release）才走真实 wx.login
+  const useDevLogin = shouldUseDevLogin()
+  if (useDevLogin) {
     const res = await request<{ token: string }>({
       url: '/auth/dev-login',
       method: 'POST',
@@ -100,6 +101,25 @@ export async function doLogin(): Promise<string> {
       fail: reject,
     })
   })
+}
+
+function shouldUseDevLogin(): boolean {
+  // #ifdef H5
+  return true
+  // #endif
+  // #ifdef MP-WEIXIN
+  // 开发版/体验版用 dev-login；正式版走 wx.login
+  try {
+    const info = (uni as any).getAccountInfoSync?.()
+    const env = info?.miniProgram?.envVersion
+    return env !== 'release'
+  } catch {
+    return true
+  }
+  // #endif
+  // #ifndef H5 || MP-WEIXIN
+  return false
+  // #endif
 }
 
 export function get<T = any>(url: string, data?: any) {
