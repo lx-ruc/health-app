@@ -1,11 +1,22 @@
 import { FastifyInstance } from 'fastify'
 import { verifyToken } from './auth.js'
 import { chat } from '../services/ai.js'
+import { rateLimit } from '../utils/rateLimiter.js'
+
+const AI_RATE_LIMIT = { max: 10, windowMs: 60_000 }
 
 export async function analysisRoutes(app: FastifyInstance) {
   app.post('/chat', async (req, reply) => {
     const openid = verifyToken(req.headers.authorization)
     if (!openid) return reply.status(401).send({ error: 'unauthorized' })
+
+    const rl = rateLimit(`ai:chat:${openid}`, AI_RATE_LIMIT)
+    if (!rl.allowed) {
+      return reply
+        .status(429)
+        .header('Retry-After', Math.ceil(rl.retryAfterMs / 1000))
+        .send({ error: '请求过于频繁，请稍后再试' })
+    }
 
     const { messages } = req.body as { messages: { role: 'system' | 'user' | 'assistant'; content: string }[] }
     if (!messages?.length) {
