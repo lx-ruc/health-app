@@ -131,9 +131,13 @@ export async function analyzeReport(ocrText: string): Promise<string> {
 }
 
 /**
- * 流式版体检报告分析：把 DeepSeek 的 token 流直接转发给客户端。
- * onToken(token, fullContent) 每收到一个 token 调用一次。
+ * 流式版体检报告分析。
+ * AI 先输出自然语言分析（流式可见），最后输出 [[ANALYSIS_JSON]] 标记 + JSON。
+ * onToken(token, fullContent) 每收到一个 token 调用一次（fullContent 是累计全文）。
+ * 返回值是剥离了自然语言部分、只保留 JSON 的字符串。
  */
+const REPORT_ANALYSIS_MARKER = '[[ANALYSIS_JSON]]'
+
 export async function analyzeReportStream(
   ocrText: string,
   onToken: (token: string, fullContent: string) => void,
@@ -145,15 +149,21 @@ export async function analyzeReportStream(
       messages: [
         {
           role: 'system',
-          content: '你是一个体检报告分析助手。分析OCR识别出的体检报告文字，提取所有异常指标，对每个异常指标给出：指标名称、实际值、参考范围、偏离程度、可能的健康影响、建议。用JSON格式返回：{"abnormal":[{"name":"","value":"","reference":"","deviation":"","impact":"","suggestion":""}]}',
+          content: `你是一个体检报告分析助手。先用自然语言分析 OCR 识别出的体检报告，
+指出异常指标、偏离程度、可能的健康影响，并给出具体可执行的建议（饮食要具体到食材，运动要具体到类型和时长）。
+分析语言要专业但通俗，让普通用户能看懂。
+
+分析主体完成后，必须在最后一行单独输出标记 ${REPORT_ANALYSIS_MARKER}，然后跟一个 JSON：
+{"abnormal":[{"name":"","value":"","reference":"","deviation":"","impact":"","suggestion":""}]}
+JSON 必须严格合法，不要包裹代码块标记（不要用 \`\`\`）。`,
         },
         {
           role: 'user',
-          content: `以下是OCR识别的体检报告内容，请分析异常指标：\n\n${ocrText}`,
+          content: `以下是 OCR 识别的体检报告内容，请分析：\n\n${ocrText}`,
         },
       ],
-      max_tokens: 2048,
-      temperature: 0.3,
+      max_tokens: 3000,
+      temperature: 0.4,
       stream: true,
     },
     {
@@ -180,7 +190,7 @@ export async function analyzeReportStream(
         if (!trimmed || !trimmed.startsWith('data:')) continue
         const payload = trimmed.slice(5).trim()
         if (payload === '[DONE]') {
-          resolve(fullContent)
+          resolve(extractJson(fullContent))
           return
         }
         try {
@@ -194,7 +204,13 @@ export async function analyzeReportStream(
       }
     })
 
-    response.data.on('end', () => resolve(fullContent))
+    response.data.on('end', () => resolve(extractJson(fullContent)))
     response.data.on('error', (err: Error) => reject(err))
   })
+}
+
+function extractJson(full: string): string {
+  const idx = full.indexOf(REPORT_ANALYSIS_MARKER)
+  if (idx === -1) return full
+  return full.slice(idx + REPORT_ANALYSIS_MARKER.length).trim()
 }

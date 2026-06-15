@@ -49,11 +49,6 @@
         </view>
       </view>
 
-      <view v-if="ocrPreview" class="block ocr-block">
-        <text class="block-title">OCR 识别结果（{{ ocrDoneCount }}/{{ images.length }}）</text>
-        <text class="block-text">{{ ocrPreview }}</text>
-      </view>
-
       <view v-if="aiStreamText" class="block ai-block">
         <text class="block-title">AI 分析（流式输出）</text>
         <text class="block-text">{{ aiStreamText }}{{ currentStep === 'ai' ? '▌' : '' }}</text>
@@ -293,10 +288,13 @@ function streamAnalyzeAi(ocrText: string): Promise<string> {
       try {
         const data = JSON.parse(payload)
         if (data.step === 'ai_start') currentStep.value = 'ai'
-        else if (data.step === 'ai_token') aiStreamText.value = data.content || ''
-        else if (data.step === 'ai_done') {
+        else if (data.step === 'ai_token') {
+          // full content 含自然语言 + [[ANALYSIS_JSON]] + JSON，前端只展示自然语言部分
+          const full: string = data.content || ''
+          const markerIdx = full.indexOf('[[ANALYSIS_JSON]]')
+          aiStreamText.value = markerIdx >= 0 ? full.slice(0, markerIdx).trimEnd() : full
+        } else if (data.step === 'ai_done') {
           analysis = data.analysis || ''
-          aiStreamText.value = analysis
         } else if (data.step === 'done') {
           analysis = data.analysis || analysis
           currentStep.value = 'done'
