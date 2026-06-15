@@ -56,11 +56,11 @@ async function analyze() {
 
   analyzing.value = true
   try {
-    const res = await post<{ ocrText: string; analysis: string }>('/report/analyze', {
+    const res = await post<{ id: number; ocrText: string; analysis: string }>('/report/analyze', {
       image: imageBase64.value,
     })
     uni.navigateTo({
-      url: `/pages/report/result?ocrText=${encodeURIComponent(res.ocrText)}&analysis=${encodeURIComponent(res.analysis)}`,
+      url: `/pages/report/result?id=${res.id}`,
     })
   } catch (err: any) {
     uni.showToast({ title: err.message || '分析失败', icon: 'none' })
