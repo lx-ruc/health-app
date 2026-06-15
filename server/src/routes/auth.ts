@@ -1,7 +1,13 @@
 import { FastifyInstance } from 'fastify'
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'health-app-secret-change-me'
+const envSecret = process.env.JWT_SECRET
+if (!envSecret) {
+  throw new Error(
+    'JWT_SECRET environment variable is required. Set a strong random value in server/.env (see .env.example).'
+  )
+}
+const JWT_SECRET: string = envSecret
 const JWT_EXPIRES_IN = '7d'
 const WX_APPID = process.env.WX_APPID || ''
 const WX_SECRET = process.env.WX_SECRET || ''
