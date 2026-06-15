@@ -31,6 +31,12 @@
       }
     },
     {
+      "path": "pages/metrics/manage",
+      "style": {
+        "navigationBarTitleText": "管理指标"
+      }
+    },
+    {
       "path": "pages/analysis/index",
       "style": {
         "navigationBarTitleText": "AI 分析"

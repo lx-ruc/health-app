@@ -26,7 +26,13 @@ export const DISEASE_OPTIONS = [
   '其他',
 ] as const
 
-export const METRIC_OPTIONS = [
+export interface MetricItem {
+  key: string
+  label: string
+  unit: string
+}
+
+export const METRIC_OPTIONS: ReadonlyArray<MetricItem> = [
   { key: 'weight', label: '体重', unit: 'kg' },
   { key: 'systolic', label: '收缩压', unit: 'mmHg' },
   { key: 'diastolic', label: '舒张压', unit: 'mmHg' },
@@ -35,7 +41,10 @@ export const METRIC_OPTIONS = [
   { key: 'steps', label: '每日步数', unit: '步' },
   { key: 'exerciseDuration', label: '运动时长', unit: '分钟' },
   { key: 'heartRate', label: '心率', unit: '次/分' },
-] as const
+]
+
+/** 预设指标 key 集合，用于区分自定义指标 */
+export const PRESET_METRIC_KEYS: ReadonlySet<string> = new Set(METRIC_OPTIONS.map((m) => m.key))
 
 export const WORK_TYPE_OPTIONS = [
   '久坐办公',

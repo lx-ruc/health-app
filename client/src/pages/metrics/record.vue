@@ -21,7 +21,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useMetricStore } from '../../stores/metric'
-import { METRIC_OPTIONS } from '../../utils/constants'
 import { onLoad } from '@dcloudio/uni-app'
 
 const metricStore = useMetricStore()
@@ -29,12 +28,17 @@ const metricKey = ref('')
 const value = ref('')
 const saving = ref(false)
 
-onLoad((query) => {
+onLoad(async (query) => {
   metricKey.value = query?.metricKey || ''
+  // 兜底：record.vue 经 navigateTo 到达，store 通常已被 index.vue 填充；
+  // 但若用户直达该页（如从其他入口跳转），需 fetchConfig 确保自定义指标 label/unit 可用。
+  if (metricStore.selectedMetrics.length === 0) {
+    await metricStore.fetchConfig()
+  }
 })
 
 const metricInfo = computed(() =>
-  METRIC_OPTIONS.find((m) => m.key === metricKey.value),
+  metricStore.selectedMetrics.find((m) => m.key === metricKey.value),
 )
 
 async function submit() {
