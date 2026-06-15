@@ -31,8 +31,11 @@ export async function analysisRoutes(app: FastifyInstance) {
     const records = db.prepare(
       'SELECT * FROM metric_records WHERE openid = ? ORDER BY recorded_at DESC LIMIT 50'
     ).all(openid)
+    const metricConfig = db.prepare(
+      'SELECT metrics FROM metric_configs WHERE openid = ?'
+    ).get(openid) as { metrics: string } | undefined
 
-    const userContext = buildUserContext(user, habits, records)
+    const userContext = buildUserContext(user, habits, records, metricConfig)
 
     try {
       const reply_content = await chat(userContext, messages)
@@ -43,15 +46,39 @@ export async function analysisRoutes(app: FastifyInstance) {
   })
 }
 
-function buildUserContext(user: any, habits: any[], records: any[]): string {
+export function buildUserContext(
+  user: any,
+  habits: any[],
+  records: any[],
+  metricConfig?: { metrics: string } | null,
+): string {
   let ctx = '用户健康画像：\n'
 
   if (user) {
     ctx += `性别: ${user.gender || '未填写'}, 年龄段: ${user.age_range || '未填写'}, `
     ctx += `身高: ${user.height_range || '未填写'}, 体重: ${user.weight_range || '未填写'}, `
     ctx += `职业: ${user.occupation || '未填写'}\n`
+    // 完整病史：慢性病 + 过敏史 + 手术史
+    // 兜底 || '[]' 防御旧库未迁移场景（理论上 task2 已迁移，但保持安全）
     const diseases = JSON.parse(user.diseases || '[]')
-    if (diseases.length) ctx += `已知病史: ${diseases.join('、')}\n`
+    const allergies = JSON.parse(user.allergies || '[]')
+    const surgeries = JSON.parse(user.surgery_history || '[]')
+    if (diseases.length) ctx += `慢性病: ${diseases.join('、')}\n`
+    if (allergies.length) ctx += `过敏史: ${allergies.join('、')}\n`
+    if (surgeries.length) ctx += `手术史: ${surgeries.join('、')}\n`
+  }
+
+  // 用户正在追踪的健康指标（兼容新旧格式：旧 string[] / 新 MetricItem[]）
+  if (metricConfig?.metrics) {
+    const arr = JSON.parse(metricConfig.metrics) as unknown
+    if (Array.isArray(arr)) {
+      const labels = arr.map((m: any) =>
+        typeof m === 'string' ? m : m?.label,
+      ).filter(Boolean)
+      if (labels.length) {
+        ctx += `\n用户正在追踪的健康指标：${labels.join('、')}\n`
+      }
+    }
   }
 
   if (habits.length) {
