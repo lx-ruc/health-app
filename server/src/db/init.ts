@@ -46,6 +46,7 @@ export function initDb(): Database.Database {
     CREATE TABLE IF NOT EXISTS metric_configs (
       openid TEXT PRIMARY KEY,
       metrics TEXT DEFAULT '[]',
+      created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (openid) REFERENCES users(openid)
     );
@@ -82,6 +83,16 @@ export function initDb(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_metric_records_openid ON metric_records(openid, metric_key, recorded_at);
     CREATE INDEX IF NOT EXISTS idx_chat_messages_openid ON chat_messages(openid, created_at);
   `)
+
+  // 幂等迁移：为旧库的 metric_configs 补 created_at 列
+  // CREATE TABLE IF NOT EXISTS 不会修改已存在的表，需显式迁移。
+  // 注：SQLite 的 ALTER TABLE ADD COLUMN 不允许 datetime('now') 这类非常量默认值，
+  // 因此存量库中该列无默认值（新行不会自动填充）；此处用 updated_at 回填存量行作为近似。
+  const metricConfigsCols = db.prepare('PRAGMA table_info(metric_configs)').all() as Array<{ name: string }>
+  if (!metricConfigsCols.some((c) => c.name === 'created_at')) {
+    db.exec('ALTER TABLE metric_configs ADD COLUMN created_at TEXT')
+    db.exec('UPDATE metric_configs SET created_at = updated_at WHERE created_at IS NULL')
+  }
 
   return db
 }
