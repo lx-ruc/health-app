@@ -11,7 +11,31 @@ import { reportRoutes } from './routes/report.js'
 
 const app = Fastify({ logger: true })
 
-await app.register(cors, { origin: true })
+// CORS: 默认仅允许 localhost；生产环境通过 CORS_ORIGINS（逗号分隔）显式配置允许的来源
+const configuredOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+
+async function corsOriginValidator(origin: string | undefined): Promise<boolean> {
+  // 无 Origin 头（同源/非浏览器请求）直接放行
+  if (!origin) {
+    return true
+  }
+  // 显式配置了 CORS_ORIGINS 时，仅允许列表中的来源
+  if (configuredOrigins.length > 0) {
+    return configuredOrigins.includes(origin)
+  }
+  // 默认仅允许本地开发地址（任意端口）
+  try {
+    const { hostname } = new URL(origin)
+    return hostname === 'localhost' || hostname === '127.0.0.1'
+  } catch {
+    return false
+  }
+}
+
+await app.register(cors, { origin: corsOriginValidator })
 
 const db = initDb()
 
