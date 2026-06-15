@@ -86,12 +86,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useHabitStore } from '../../stores/habit'
 import { WORK_TYPE_OPTIONS } from '../../utils/constants'
+import { toChinaDateStr } from '../../utils/date'
 
 const habitStore = useHabitStore()
 const workTypes = [...WORK_TYPE_OPTIONS]
 const saving = ref(false)
 
-const today = new Date().toISOString().slice(0, 10)
+const today = toChinaDateStr()
 const hasRecord = computed(() => !!habitStore.todayHabit)
 
 const form = ref({

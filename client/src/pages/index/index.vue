@@ -50,11 +50,12 @@
 import { onMounted } from 'vue'
 import { useHabitStore } from '../../stores/habit'
 import { useMetricStore } from '../../stores/metric'
+import { toChinaDateStr } from '../../utils/date'
 
 const habitStore = useHabitStore()
 const metricStore = useMetricStore()
 
-const today = new Date().toISOString().slice(0, 10)
+const today = toChinaDateStr()
 
 onMounted(() => {
   habitStore.fetchToday()

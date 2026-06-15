@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { verifyToken } from './auth.js'
+import { toChinaDateStr, toChinaDateStrDaysAgo } from '../utils/date.js'
 
 export async function habitRoutes(app: FastifyInstance) {
   app.get('/', async (req, reply) => {
@@ -14,8 +15,8 @@ export async function habitRoutes(app: FastifyInstance) {
       return habit || null
     }
 
-    const startDate = start || new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
-    const endDate = end || new Date().toISOString().slice(0, 10)
+    const startDate = start || toChinaDateStrDaysAgo(30)
+    const endDate = end || toChinaDateStr()
     const habits = db.prepare(
       'SELECT * FROM habits WHERE openid = ? AND date BETWEEN ? AND ? ORDER BY date DESC'
     ).all(openid, startDate, endDate)

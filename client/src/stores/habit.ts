@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getHabitCache, setHabitCache } from '../utils/storage'
 import { get, post } from '../api'
+import { toChinaDateStr } from '../utils/date'
 
 export const useHabitStore = defineStore('habit', () => {
   const todayHabit = ref<any>(null)
@@ -14,7 +15,7 @@ export const useHabitStore = defineStore('habit', () => {
   }
 
   async function fetchToday() {
-    const today = new Date().toISOString().slice(0, 10)
+    const today = toChinaDateStr()
     try {
       const data = await get('/habits', { date: today })
       todayHabit.value = data
@@ -32,7 +33,7 @@ export const useHabitStore = defineStore('habit', () => {
   }
 
   async function saveHabit(data: any) {
-    const today = new Date().toISOString().slice(0, 10)
+    const today = toChinaDateStr()
     await post('/habits', { date: today, ...data })
     await fetchToday()
   }
