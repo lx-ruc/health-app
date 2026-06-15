@@ -232,14 +232,26 @@ async function analyze() {
     currentStep.value = 'ocr'
     const allTexts: string[] = []
     for (let i = 0; i < images.value.length; i++) {
-      const { ocrText } = await post<{ ocrText: string }>(
-        '/report/ocr',
-        { image: images.value[i].base64 },
-        { timeout: 60000 },
-      )
-      allTexts.push(ocrText)
-      ocrDoneCount.value = i + 1
-      ocrPreview.value = allTexts.map((t, idx) => `— 第 ${idx + 1} 张 —\n${t}`).join('\n\n')
+      try {
+        const { ocrText } = await post<{ ocrText: string }>(
+          '/report/ocr',
+          { image: images.value[i].base64 },
+          { timeout: 180000 }, // 单张 OCR 给 3 分钟（真机慢网络 + 大图兜底）
+        )
+        allTexts.push(ocrText)
+        ocrDoneCount.value = i + 1
+        ocrPreview.value = allTexts.map((t, idx) => `— 第 ${idx + 1} 张 —\n${t}`).join('\n\n')
+      } catch (err: any) {
+        stopElapsedTimer()
+        analyzing.value = false
+        const reason = err?.errMsg || err?.message || '未知'
+        uni.showModal({
+          title: `第 ${i + 1} 张 OCR 失败`,
+          content: `${reason}\n\n可换张更清晰的图，或减少同时识别的张数`,
+          showCancel: false,
+        })
+        return
+      }
     }
     const combinedOcr = allTexts.join('\n\n')
     currentStep.value = 'ai'
@@ -299,7 +311,7 @@ function streamAnalyzeAi(ocrText: string): Promise<string> {
       url: `${API_BASE}/report/analyze-stream`,
       method: 'POST' as any,
       data: { ocrText },
-      timeout: 180000,
+      timeout: 300000, // AI 流式 5 分钟兜底（DeepSeek 偶尔慢）
       enableChunked: true,
       responseType: 'arraybuffer' as any,
       header: {

@@ -16,7 +16,8 @@ function request<T = any>(options: RequestOptions): Promise<T> {
       url: `${API_BASE}${options.url}`,
       method: (options.method || 'GET') as any,
       data: options.data,
-      timeout: options.timeout,
+      // 默认 90s（mp-weixin 默认 60s 偏短，真机慢网络容易 timeout）
+      timeout: options.timeout ?? 90000,
       header: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
