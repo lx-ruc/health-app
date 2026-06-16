@@ -5,7 +5,7 @@
 // - 正式上线：换成自己的 HTTPS 域名 + 在 mp.weixin.qq.com 后台配 request 合法域名
 let API_HOST = 'http://localhost:3000'
 // #ifndef H5
-API_HOST = 'https://elected-chose-police-gardening.trycloudflare.com'
+API_HOST = 'https://times-suggested-millennium-liberty.trycloudflare.com'
 // #endif
 export const API_BASE = `${API_HOST}/api`
 

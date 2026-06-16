@@ -309,7 +309,7 @@ function streamAnalyzeAi(ocrText: string): Promise<string> {
       url: `${API_BASE}/report/analyze-stream`,
       method: 'POST' as any,
       data: { ocrText },
-      timeout: 300000, // AI 流式 5 分钟兜底（DeepSeek 偶尔慢）
+      timeout: 600000, // mp-weixin 上限 10 分钟（DeepSeek 流式自然语言 + JSON 偶尔很慢）
       enableChunked: true,
       responseType: 'arraybuffer' as any,
       header: {

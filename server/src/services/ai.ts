@@ -149,9 +149,9 @@ export async function analyzeReportStream(
       messages: [
         {
           role: 'system',
-          content: `你是一个体检报告分析助手。先用自然语言分析 OCR 识别出的体检报告，
-指出异常指标、偏离程度、可能的健康影响，并给出具体可执行的建议（饮食要具体到食材，运动要具体到类型和时长）。
-分析语言要专业但通俗，让普通用户能看懂。
+          content: `你是一个体检报告分析助手。先用简洁的自然语言分析 OCR 识别出的体检报告，
+**控制总字数在 500 字以内**，重点指出最关键的 2-3 个异常指标、健康影响和核心建议。
+不要逐项罗列所有指标，不要写太长。
 
 分析主体完成后，必须在最后一行单独输出标记 ${REPORT_ANALYSIS_MARKER}，然后跟一个 JSON：
 {"abnormal":[{"name":"","value":"","reference":"","deviation":"","impact":"","suggestion":""}]}
@@ -162,7 +162,7 @@ JSON 必须严格合法，不要包裹代码块标记（不要用 \`\`\`）。`,
           content: `以下是 OCR 识别的体检报告内容，请分析：\n\n${ocrText}`,
         },
       ],
-      max_tokens: 3000,
+      max_tokens: 1500,
       temperature: 0.4,
       stream: true,
     },
