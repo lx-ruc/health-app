@@ -12,11 +12,32 @@ const JWT_EXPIRES_IN = '7d'
 const WX_APPID = process.env.WX_APPID || ''
 const WX_SECRET = process.env.WX_SECRET || ''
 
+// 本地开发降级：非生产环境且未配置微信凭证时，跳过 code2Session，
+// 所有登录请求映射到同一个本地开发用户，避免 touristappid 下登录永远 401。
+const DEV_OPENID = 'dev-local-openid'
+const devLoginEnabled = process.env.NODE_ENV !== 'production' && (!WX_APPID || !WX_SECRET)
+
+interface WxSessionResponse {
+  openid?: string
+  errcode?: number
+  errmsg?: string
+}
+
 interface WxLoginBody {
   code: string
 }
 
+async function wxCodeToOpenid(code: string): Promise<WxSessionResponse> {
+  const wxUrl = `https://api.weixin.qq.com/sns/jscode2session?appid=${WX_APPID}&secret=${WX_SECRET}&js_code=${code}&grant_type=authorization_code`
+  const res = await fetch(wxUrl)
+  return res.json() as Promise<WxSessionResponse>
+}
+
 export async function authRoutes(app: FastifyInstance) {
+  if (devLoginEnabled) {
+    app.log.warn('DEV login bypass active (WX_APPID/WX_SECRET missing): all clients sign in as the local dev user')
+  }
+
   app.post<{ Body: WxLoginBody }>('/login', async (req, reply) => {
     const { code } = req.body
 
@@ -24,10 +45,9 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'code is required' })
     }
 
-    const wxUrl = `https://api.weixin.qq.com/sns/jscode2session?appid=${WX_APPID}&secret=${WX_SECRET}&js_code=${code}&grant_type=authorization_code`
-
-    const res = await fetch(wxUrl)
-    const data = await res.json() as { openid?: string; errcode?: number; errmsg?: string }
+    const data = devLoginEnabled
+      ? { openid: DEV_OPENID }
+      : await wxCodeToOpenid(code)
 
     if (!data.openid) {
       return reply.status(401).send({ error: 'wx login failed', detail: data })

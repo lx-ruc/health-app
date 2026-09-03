@@ -1,4 +1,7 @@
-export const API_BASE = 'http://localhost:3000/api'
+// 注意：开发环境用 127.0.0.1 而非 localhost——
+// 新版开发者工具网络层把 localhost 解析为 IPv6 ::1 且不回退 IPv4，
+// 而本地服务只监听 IPv4，会瞬时连接拒绝（Failed to fetch）。
+export const API_BASE = 'http://127.0.0.1:3000/api'
 
 export const GENDER_OPTIONS = ['男', '女'] as const
 

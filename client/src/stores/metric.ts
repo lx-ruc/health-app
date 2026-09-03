@@ -26,7 +26,12 @@ export const useMetricStore = defineStore('metric', () => {
   async function fetchRecords(metricKey?: string, days?: number) {
     loading.value = true
     try {
-      const data = await get('/metrics/records', { metricKey, days })
+      // 仅传已定义的参数：undefined 会被 uni.request 序列化成字符串 "undefined"，
+      // 导致服务端按 metric_key='undefined' 过滤、记录恒为空
+      const params: Record<string, string | number> = {}
+      if (metricKey) params.metricKey = metricKey
+      if (days) params.days = days
+      const data = await get('/metrics/records', params)
       records.value = data || []
     } finally {
       loading.value = false
