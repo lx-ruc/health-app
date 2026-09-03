@@ -34,7 +34,7 @@
 - [x] 5.3 前端实现 Pinia metricStore：管理指标配置和打卡数据
 - [x] 5.4 前端实现指标打卡列表页（metrics/index）：展示已选指标，快捷录入入口
 - [x] 5.5 前端实现指标录入页面（metrics/record）：数值输入，保存打卡
-- [ ] 5.6 前端实现指标趋势图：使用 uCharts 或 uCharts-lite 绘制折线图
+- [x] 5.6 前端实现指标趋势图：使用 uCharts 或 uCharts-lite 绘制折线图（由 add-metric-trend-charts 取代实现（自绘 canvas））
 
 ## 6. AI 对话分析模块
 
