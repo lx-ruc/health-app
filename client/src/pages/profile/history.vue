@@ -1,51 +1,54 @@
 <template>
   <view class="history-page">
-    <view class="section">
-      <text class="section-title">慢性病</text>
+    <view class="sheet section">
+      <text class="eyebrow section-eyebrow">慢性病</text>
       <view class="tag-grid">
         <view
           v-for="opt in DISEASE_OPTIONS"
           :key="opt"
-          class="tag"
+          class="chip"
           :class="{ active: isSelected(draft.diseases, opt) }"
+          hover-class="press"
           @tap="toggle(draft.diseases, opt)"
         >
-          <text class="tag-label">{{ opt }}</text>
+          <text>{{ opt }}</text>
         </view>
       </view>
     </view>
 
-    <view class="section">
-      <text class="section-title">过敏史</text>
+    <view class="sheet section">
+      <text class="eyebrow section-eyebrow">过敏史</text>
       <view class="tag-grid">
         <view
           v-for="opt in ALLERGY_OPTIONS"
           :key="opt"
-          class="tag"
+          class="chip"
           :class="{ active: isSelected(draft.allergies, opt) }"
+          hover-class="press"
           @tap="toggle(draft.allergies, opt)"
         >
-          <text class="tag-label">{{ opt }}</text>
+          <text>{{ opt }}</text>
         </view>
       </view>
     </view>
 
-    <view class="section">
-      <text class="section-title">手术史</text>
+    <view class="sheet section">
+      <text class="eyebrow section-eyebrow">手术史</text>
       <view class="tag-grid">
         <view
           v-for="opt in SURGERY_OPTIONS"
           :key="opt"
-          class="tag"
+          class="chip"
           :class="{ active: isSelected(draft.surgeryHistory, opt) }"
+          hover-class="press"
           @tap="toggle(draft.surgeryHistory, opt)"
         >
-          <text class="tag-label">{{ opt }}</text>
+          <text>{{ opt }}</text>
         </view>
       </view>
     </view>
 
-    <button class="save-btn" :loading="saving" @tap="onSave">保存</button>
+    <button class="btn-primary save-btn" :loading="saving" @tap="onSave">保存</button>
   </view>
 </template>
 
@@ -136,23 +139,17 @@ async function onSave() {
 
 <style scoped>
 .history-page {
-  padding: 20rpx 30rpx 120rpx;
+  padding: 24rpx 32rpx 200rpx;
   min-height: 100vh;
 }
 
 .section {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin-bottom: 20rpx;
+  padding: 30rpx 32rpx;
+  margin-bottom: 32rpx;
 }
 
-.section-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #333;
-  display: block;
-  margin-bottom: 20rpx;
+.section-eyebrow {
+  margin-bottom: 24rpx;
 }
 
 .tag-grid {
@@ -161,38 +158,10 @@ async function onSave() {
   gap: 16rpx;
 }
 
-.tag {
-  background: #f5f5f5;
-  border-radius: 12rpx;
-  padding: 16rpx 28rpx;
-  border: 2rpx solid transparent;
-}
-
-.tag.active {
-  background: #e6f7ee;
-  border-color: #07C160;
-}
-
-.tag-label {
-  font-size: 28rpx;
-  color: #333;
-}
-
-.tag.active .tag-label {
-  color: #07C160;
-  font-weight: 600;
-}
-
 .save-btn {
   position: fixed;
-  left: 30rpx;
-  right: 30rpx;
-  bottom: 30rpx;
-  height: 88rpx;
-  line-height: 88rpx;
-  background: #07C160;
-  color: #fff;
-  border-radius: 16rpx;
-  font-size: 32rpx;
+  left: 32rpx;
+  right: 32rpx;
+  bottom: calc(32rpx + env(safe-area-inset-bottom));
 }
 </style>

@@ -1,33 +1,51 @@
 <template>
   <view class="result-page">
-    <view v-if="loading" class="loading">
-      <text>报告加载中...</text>
+    <view v-if="loading" class="state-block">
+      <text class="state-text">报告加载中…</text>
     </view>
 
-    <view v-else-if="errorMsg" class="error">
-      <text>{{ errorMsg }}</text>
+    <view v-else-if="errorMsg" class="state-block">
+      <text class="state-text error">{{ errorMsg }}</text>
     </view>
 
     <template v-else>
-      <view class="section">
-        <text class="section-title">OCR 识别结果</text>
+      <view class="sheet section">
+        <text class="eyebrow section-eyebrow">识别结果</text>
         <text class="ocr-text" selectable>{{ ocrText }}</text>
       </view>
 
-      <view class="section">
-        <text class="section-title">异常指标分析</text>
+      <view class="sheet section">
+        <text class="eyebrow section-eyebrow">异常指标</text>
         <view v-if="abnormalItems.length > 0" class="abnormal-list">
-          <view v-for="(item, idx) in abnormalItems" :key="idx" class="abnormal-card" @tap="toggleExpand(idx)">
+          <view
+            v-for="(item, idx) in abnormalItems"
+            :key="idx"
+            class="abnormal-card"
+            hover-class="press"
+            @tap="toggleExpand(idx)"
+          >
             <view class="card-header">
               <text class="card-name">{{ item.name }}</text>
-              <text class="card-value">{{ item.value }}</text>
+              <text class="num card-value">{{ item.value }}</text>
               <text class="card-expand">{{ expanded[idx] ? '收起' : '展开' }}</text>
             </view>
             <view v-if="expanded[idx]" class="card-detail">
-              <text class="detail-row">参考范围: {{ item.reference }}</text>
-              <text class="detail-row">偏离程度: {{ item.deviation }}</text>
-              <text class="detail-row">健康影响: {{ item.impact }}</text>
-              <text class="detail-row suggestion">建议: {{ item.suggestion }}</text>
+              <view class="detail-row">
+                <text class="detail-label">参考范围</text>
+                <text class="detail-content">{{ item.reference }}</text>
+              </view>
+              <view class="detail-row">
+                <text class="detail-label">偏离程度</text>
+                <text class="detail-content">{{ item.deviation }}</text>
+              </view>
+              <view class="detail-row">
+                <text class="detail-label">健康影响</text>
+                <text class="detail-content">{{ item.impact }}</text>
+              </view>
+              <view class="detail-row">
+                <text class="detail-label">建议</text>
+                <text class="detail-content advice">{{ item.suggestion }}</text>
+              </view>
             </view>
           </view>
         </view>
@@ -84,95 +102,112 @@ function toggleExpand(idx: number) {
 
 <style scoped>
 .result-page {
-  padding: 20rpx 30rpx;
+  padding: 24rpx 32rpx 60rpx;
   min-height: 100vh;
 }
 
 .section {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin-bottom: 20rpx;
+  padding: 30rpx 32rpx;
+  margin-bottom: 24rpx;
 }
 
-.section-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #333;
-  display: block;
-  margin-bottom: 16rpx;
+.section-eyebrow {
+  margin-bottom: 20rpx;
 }
 
 .ocr-text {
   font-size: 26rpx;
-  color: #666;
-  line-height: 1.6;
+  color: var(--t2);
+  line-height: 1.7;
   white-space: pre-wrap;
 }
 
+/* ---- 异常指标卡：化验单语言 ---- */
 .abnormal-card {
-  border: 1rpx solid #f0f0f0;
-  border-radius: 12rpx;
-  padding: 20rpx;
-  margin-bottom: 16rpx;
+  border: 1rpx solid var(--line);
+  border-left: 6rpx solid var(--cinnabar);
+  border-radius: 16rpx;
+  padding: 26rpx 28rpx;
+  margin-bottom: 18rpx;
 }
 
 .card-header {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 16rpx;
 }
 
 .card-name {
   font-size: 30rpx;
   font-weight: 600;
-  color: #e53935;
+  color: var(--cinnabar);
   flex: 1;
 }
 
 .card-value {
-  font-size: 28rpx;
-  color: #333;
+  font-size: 34rpx;
+  font-weight: 600;
+  color: var(--t1);
 }
 
 .card-expand {
   font-size: 24rpx;
-  color: #07C160;
+  color: var(--t3);
 }
 
 .card-detail {
-  margin-top: 16rpx;
-  padding-top: 16rpx;
-  border-top: 1rpx solid #f0f0f0;
+  margin-top: 22rpx;
+  padding-top: 22rpx;
+  border-top: 1rpx dashed var(--line);
 }
 
 .detail-row {
-  display: block;
-  font-size: 26rpx;
-  color: #666;
-  line-height: 1.8;
+  display: flex;
+  margin-bottom: 14rpx;
 }
 
-.detail-row.suggestion {
-  color: #07C160;
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  width: 150rpx;
+  flex-shrink: 0;
+  font-size: 25rpx;
+  color: var(--t3);
+}
+
+.detail-content {
+  flex: 1;
+  font-size: 25rpx;
+  color: var(--t2);
+  line-height: 1.7;
+}
+
+.detail-content.advice {
+  color: var(--ink);
 }
 
 .raw-analysis {
   font-size: 26rpx;
-  color: #666;
-  line-height: 1.6;
+  color: var(--t2);
+  line-height: 1.7;
   white-space: pre-wrap;
 }
 
-.loading,
-.error {
-  text-align: center;
-  padding: 80rpx 0;
-  color: #999;
+/* ---- 状态 ---- */
+.state-block {
+  display: flex;
+  justify-content: center;
+  padding: 120rpx 0;
+}
+
+.state-text {
+  color: var(--t3);
   font-size: 28rpx;
 }
 
-.error {
-  color: #e53935;
+.state-text.error {
+  color: var(--cinnabar);
 }
 </style>

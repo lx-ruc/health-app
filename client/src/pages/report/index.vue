@@ -1,21 +1,28 @@
 <template>
   <view class="report-page">
-    <view class="upload-area" @tap="chooseImage">
+    <view class="masthead">
+      <text class="eyebrow">体检报告</text>
+      <text class="masthead-title">上传报告，帮你解读</text>
+    </view>
+
+    <view class="sheet upload-area" hover-class="press" @tap="chooseImage">
       <view v-if="!previewUrl" class="upload-placeholder">
-        <text class="upload-icon">+</text>
-        <text class="upload-text">点击上传体检报告</text>
-        <text class="upload-hint">支持拍照或从相册选择</text>
+        <view class="upload-mark">
+          <text class="upload-plus">+</text>
+        </view>
+        <text class="upload-text">上传体检报告</text>
+        <text class="upload-hint">拍照或从相册选择，JPG / PNG</text>
       </view>
       <image v-else :src="previewUrl" mode="aspectFit" class="preview-image" />
     </view>
 
     <button
       v-if="previewUrl"
-      class="analyze-btn"
+      class="btn-primary analyze-btn"
       :loading="analyzing"
       @tap="analyze"
     >
-      {{ analyzing ? '分析中...' : '开始分析' }}
+      {{ analyzing ? '识别中…' : '开始分析' }}
     </button>
   </view>
 </template>
@@ -72,15 +79,25 @@ async function analyze() {
 
 <style scoped>
 .report-page {
-  padding: 40rpx 30rpx;
+  padding: 40rpx 32rpx;
   min-height: 100vh;
 }
 
+.masthead {
+  padding: 10rpx 8rpx 34rpx;
+}
+
+.masthead-title {
+  display: block;
+  font-size: 42rpx;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 12rpx;
+}
+
 .upload-area {
-  background: #fff;
-  border-radius: 16rpx;
-  border: 2rpx dashed #ccc;
-  min-height: 400rpx;
+  border: 3rpx dashed #C9D4CD;
+  min-height: 480rpx;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -93,36 +110,42 @@ async function analyze() {
   align-items: center;
 }
 
-.upload-icon {
-  font-size: 80rpx;
-  color: #ccc;
+.upload-mark {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  border: 3rpx solid #C9D4CD;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-plus {
+  font-size: 64rpx;
+  color: #C9D4CD;
   line-height: 1;
+  margin-top: -8rpx;
 }
 
 .upload-text {
   font-size: 30rpx;
-  color: #666;
-  margin-top: 20rpx;
+  font-weight: 600;
+  color: var(--t1);
+  margin-top: 30rpx;
 }
 
 .upload-hint {
   font-size: 24rpx;
-  color: #999;
-  margin-top: 10rpx;
+  color: var(--t3);
+  margin-top: 12rpx;
 }
 
 .preview-image {
   width: 100%;
-  height: 400rpx;
+  height: 480rpx;
 }
 
 .analyze-btn {
   margin-top: 40rpx;
-  height: 88rpx;
-  line-height: 88rpx;
-  background: #07C160;
-  color: #fff;
-  border-radius: 16rpx;
-  font-size: 32rpx;
 }
 </style>

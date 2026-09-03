@@ -1,11 +1,11 @@
 <template>
   <view class="onboarding">
-    <view class="progress-bar">
+    <view class="progress-track">
       <view class="progress-fill" :style="{ width: progressWidth }" />
     </view>
 
     <view class="step-info">
-      <text class="step-text">{{ currentStep + 1 }} / {{ steps.length }}</text>
+      <text class="eyebrow num">STEP {{ currentStep + 1 }} / {{ steps.length }}</text>
       <text class="step-title">{{ currentStepData.title }}</text>
     </view>
 
@@ -13,8 +13,9 @@
       <view
         v-for="option in currentStepData.options"
         :key="option"
-        class="option-item"
+        class="chip option-item"
         :class="{ selected: isSelected(option) }"
+        hover-class="press"
         @tap="selectOption(option)"
       >
         <text class="option-text">{{ option }}</text>
@@ -22,8 +23,8 @@
     </view>
 
     <view class="actions">
-      <button v-if="currentStep > 0" class="btn btn-prev" @tap="prevStep">上一步</button>
-      <button class="btn btn-next" @tap="nextStep">
+      <button v-if="currentStep > 0" class="btn-quiet btn-prev" @tap="prevStep">上一步</button>
+      <button class="btn-primary btn-next" @tap="nextStep">
         {{ currentStep === steps.length - 1 ? '完成' : '下一步' }}
       </button>
     </view>
@@ -117,98 +118,69 @@ async function nextStep() {
 
 <style scoped>
 .onboarding {
-  padding: 40rpx;
+  padding: 40rpx 32rpx;
   min-height: 100vh;
-  background: #fff;
 }
 
-.progress-bar {
-  height: 8rpx;
-  background: #eee;
-  border-radius: 4rpx;
-  margin-bottom: 60rpx;
+.progress-track {
+  height: 6rpx;
+  background: #E3E9E4;
+  border-radius: 999rpx;
+  margin: 20rpx 8rpx 70rpx;
+  overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: #07C160;
-  border-radius: 4rpx;
-  transition: width 0.3s ease;
+  background: var(--ink);
+  border-radius: 999rpx;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .step-info {
-  margin-bottom: 60rpx;
-}
-
-.step-text {
-  display: block;
-  font-size: 28rpx;
-  color: #999;
-  margin-bottom: 20rpx;
+  padding: 0 8rpx 56rpx;
 }
 
 .step-title {
   display: block;
-  font-size: 40rpx;
-  font-weight: 600;
-  color: #333;
+  font-size: 44rpx;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 14rpx;
+  animation: rise 0.3s ease both;
 }
 
 .options {
   display: flex;
   flex-wrap: wrap;
-  gap: 20rpx;
-  margin-bottom: 80rpx;
+  gap: 18rpx;
+  padding: 0 8rpx 80rpx;
 }
 
 .option-item {
-  padding: 20rpx 40rpx;
-  border-radius: 16rpx;
-  background: #f5f5f5;
-  border: 2rpx solid transparent;
-  transition: all 0.2s;
-}
-
-.option-item.selected {
-  background: #e8f5e9;
-  border-color: #07C160;
+  padding: 20rpx 38rpx;
 }
 
 .option-text {
-  font-size: 30rpx;
-  color: #333;
-}
-
-.selected .option-text {
-  color: #07C160;
-  font-weight: 500;
+  font-size: 29rpx;
 }
 
 .actions {
   display: flex;
   gap: 20rpx;
   position: fixed;
-  bottom: 60rpx;
-  left: 40rpx;
-  right: 40rpx;
+  bottom: calc(50rpx + env(safe-area-inset-bottom));
+  left: 32rpx;
+  right: 32rpx;
 }
 
-.btn {
-  flex: 1;
-  height: 88rpx;
-  line-height: 88rpx;
-  border-radius: 16rpx;
-  font-size: 32rpx;
-  text-align: center;
-}
-
-.btn-prev {
-  background: #f5f5f5;
-  color: #666;
-}
-
+.btn-prev,
 .btn-next {
-  background: #07C160;
-  color: #fff;
+  flex: 1;
+}
+
+@keyframes rise {
+  from { transform: translateY(14rpx); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 </style>

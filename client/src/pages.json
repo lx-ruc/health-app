@@ -76,33 +76,44 @@
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "健康追踪",
-    "navigationBarBackgroundColor": "#F8F8F8",
-    "backgroundColor": "#F8F8F8"
+    "navigationBarBackgroundColor": "#F2F4F0",
+    "backgroundColor": "#F2F4F0"
   },
   "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#07C160",
+    "color": "#9DAAA3",
+    "selectedColor": "#1C3A31",
     "backgroundColor": "#ffffff",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页"
+        "text": "首页",
+        "iconPath": "static/tab-home.png",
+        "selectedIconPath": "static/tab-home-active.png"
       },
       {
         "pagePath": "pages/habit/index",
-        "text": "习惯"
+        "text": "习惯",
+        "iconPath": "static/tab-habit.png",
+        "selectedIconPath": "static/tab-habit-active.png"
       },
       {
         "pagePath": "pages/metrics/index",
-        "text": "指标"
+        "text": "指标",
+        "iconPath": "static/tab-metrics.png",
+        "selectedIconPath": "static/tab-metrics-active.png"
       },
       {
         "pagePath": "pages/analysis/index",
-        "text": "AI"
+        "text": "AI",
+        "iconPath": "static/tab-ai.png",
+        "selectedIconPath": "static/tab-ai-active.png"
       },
       {
         "pagePath": "pages/profile/index",
-        "text": "我的"
+        "text": "我的",
+        "iconPath": "static/tab-profile.png",
+        "selectedIconPath": "static/tab-profile-active.png"
       }
     ]
   }

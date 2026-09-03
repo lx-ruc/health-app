@@ -2,40 +2,47 @@
   <view class="habit-page">
     <view class="date-bar">
       <text class="date-text">{{ today }}</text>
-      <text v-if="hasRecord" class="recorded-tag">已录入</text>
+      <text v-if="hasRecord" class="tag-state ok">已录入</text>
     </view>
 
     <scroll-view scroll-y class="form-scroll">
       <!-- 睡眠 -->
-      <view class="form-section">
-        <text class="section-title">作息</text>
+      <view class="sheet form-section">
+        <text class="eyebrow section-eyebrow">作息</text>
         <view class="form-item">
           <text class="item-label">睡眠时间</text>
           <picker mode="time" :value="form.sleepTime" @change="onTimeChange('sleepTime', $event)">
-            <text class="item-value">{{ form.sleepTime || '选择时间' }}</text>
+            <view class="item-picker">
+              <text :class="['item-value', 'num', !form.sleepTime && 'empty']">{{ form.sleepTime || '选择' }}</text>
+              <text class="item-caret">›</text>
+            </view>
           </picker>
         </view>
         <view class="form-item">
           <text class="item-label">起床时间</text>
           <picker mode="time" :value="form.wakeTime" @change="onTimeChange('wakeTime', $event)">
-            <text class="item-value">{{ form.wakeTime || '选择时间' }}</text>
+            <view class="item-picker">
+              <text :class="['item-value', 'num', !form.wakeTime && 'empty']">{{ form.wakeTime || '选择' }}</text>
+              <text class="item-caret">›</text>
+            </view>
           </picker>
         </view>
         <view class="form-item">
-          <text class="item-label">午休时长(分钟)</text>
-          <input class="item-input" type="number" v-model="form.napDuration" placeholder="0" />
+          <text class="item-label">午休时长（分钟）</text>
+          <input class="item-input num" type="number" v-model="form.napDuration" placeholder="0" placeholder-class="ph" />
         </view>
       </view>
 
       <!-- 工作 -->
-      <view class="form-section">
-        <text class="section-title">工作</text>
+      <view class="sheet form-section">
+        <text class="eyebrow section-eyebrow">工作</text>
         <view class="work-types">
           <view
             v-for="type in workTypes"
             :key="type"
-            class="type-tag"
+            class="chip"
             :class="{ active: form.workType === type }"
+            hover-class="press"
             @tap="form.workType = type"
           >
             <text>{{ type }}</text>
@@ -44,41 +51,43 @@
       </view>
 
       <!-- 饮食 -->
-      <view class="form-section">
-        <text class="section-title">饮食</text>
+      <view class="sheet form-section">
+        <text class="eyebrow section-eyebrow">饮食</text>
         <view class="form-item vertical">
           <text class="item-label">早餐</text>
-          <textarea class="item-textarea" v-model="form.breakfast" placeholder="描述早餐内容..." />
+          <textarea class="item-textarea" v-model="form.breakfast" placeholder="吃了什么，吃了多少…" placeholder-class="ph" />
         </view>
         <view class="form-item vertical">
           <text class="item-label">午餐</text>
-          <textarea class="item-textarea" v-model="form.lunch" placeholder="描述午餐内容..." />
+          <textarea class="item-textarea" v-model="form.lunch" placeholder="吃了什么，吃了多少…" placeholder-class="ph" />
         </view>
         <view class="form-item vertical">
           <text class="item-label">晚餐</text>
-          <textarea class="item-textarea" v-model="form.dinner" placeholder="描述晚餐内容..." />
+          <textarea class="item-textarea" v-model="form.dinner" placeholder="吃了什么，吃了多少…" placeholder-class="ph" />
         </view>
       </view>
 
       <!-- 运动 -->
-      <view class="form-section">
-        <text class="section-title">运动</text>
+      <view class="sheet form-section">
+        <text class="eyebrow section-eyebrow">运动</text>
         <view class="form-item">
           <text class="item-label">运动类型</text>
-          <input class="item-input" v-model="form.exerciseType" placeholder="如: 跑步、爬坡" />
+          <input class="item-input" v-model="form.exerciseType" placeholder="如：跑步、爬坡" placeholder-class="ph" />
         </view>
         <view class="form-item">
-          <text class="item-label">运动时长(分钟)</text>
-          <input class="item-input" type="number" v-model="form.exerciseDuration" placeholder="0" />
+          <text class="item-label">运动时长（分钟）</text>
+          <input class="item-input num" type="number" v-model="form.exerciseDuration" placeholder="0" placeholder-class="ph" />
         </view>
-        <view class="form-item">
+        <view class="form-item last">
           <text class="item-label">步数</text>
-          <input class="item-input" type="number" v-model="form.steps" placeholder="0" />
+          <input class="item-input num" type="number" v-model="form.steps" placeholder="0" placeholder-class="ph" />
         </view>
       </view>
     </scroll-view>
 
-    <button class="submit-btn" :loading="saving" @tap="submit">保存今日习惯</button>
+    <view class="submit-wrap">
+      <button class="btn-primary submit-btn" :loading="saving" @tap="submit">保存今日习惯</button>
+    </view>
   </view>
 </template>
 
@@ -127,7 +136,7 @@ onMounted(() => {
   }
 })
 
-function onTimeChange(key: string, e: any) {
+function onTimeChange(key: 'sleepTime' | 'wakeTime', e: any) {
   form.value[key] = e.detail.value
 }
 
@@ -160,49 +169,39 @@ async function submit() {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f5f5;
 }
 
+/* ---- 日期条 ---- */
 .date-bar {
   display: flex;
   align-items: center;
-  padding: 20rpx 30rpx;
-  background: #fff;
-  border-bottom: 1rpx solid #eee;
+  justify-content: space-between;
+  padding: 24rpx 32rpx;
 }
 
 .date-text {
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 600;
-  color: #333;
+  color: var(--t1);
 }
 
-.recorded-tag {
-  margin-left: 16rpx;
-  font-size: 24rpx;
-  color: #07C160;
-  background: #e8f5e9;
-  padding: 4rpx 16rpx;
-  border-radius: 8rpx;
-}
-
+/* ---- 表单 ---- */
 .form-scroll {
   flex: 1;
-  padding: 20rpx 30rpx;
+  padding: 4rpx 32rpx 20rpx;
+  box-sizing: border-box;
 }
 
 .form-section {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin-bottom: 20rpx;
+  padding: 28rpx 32rpx;
+  margin-bottom: 24rpx;
 }
 
-.section-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #333;
-  display: block;
+.form-section:first-child {
+  margin-top: 4rpx;
+}
+
+.section-eyebrow {
   margin-bottom: 20rpx;
 }
 
@@ -210,8 +209,12 @@ async function submit() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid var(--line);
+}
+
+.form-item.last {
+  border-bottom: none;
 }
 
 .form-item.vertical {
@@ -221,30 +224,53 @@ async function submit() {
 
 .item-label {
   font-size: 28rpx;
-  color: #666;
-  min-width: 160rpx;
+  color: var(--t2);
+}
+
+.item-picker {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
 }
 
 .item-value {
+  font-size: 30rpx;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.item-value.empty {
+  color: var(--t3);
+  font-weight: 400;
+}
+
+.item-caret {
   font-size: 28rpx;
-  color: #333;
+  color: var(--t3);
 }
 
 .item-input {
   flex: 1;
   text-align: right;
-  font-size: 28rpx;
-  margin-left: 20rpx;
+  font-size: 30rpx;
+  color: var(--t1);
+  margin-left: 24rpx;
 }
 
 .item-textarea {
   width: 100%;
-  height: 120rpx;
-  font-size: 28rpx;
-  margin-top: 10rpx;
-  padding: 10rpx;
-  background: #f9f9f9;
-  border-radius: 8rpx;
+  height: 130rpx;
+  font-size: 27rpx;
+  color: var(--t1);
+  margin-top: 14rpx;
+  padding: 18rpx 20rpx;
+  background: var(--paper);
+  border-radius: 14rpx;
+  box-sizing: border-box;
+}
+
+.ph {
+  color: var(--t3);
 }
 
 .work-types {
@@ -253,26 +279,12 @@ async function submit() {
   gap: 16rpx;
 }
 
-.type-tag {
-  padding: 12rpx 28rpx;
-  border-radius: 12rpx;
-  background: #f5f5f5;
-  font-size: 26rpx;
-  color: #666;
-}
-
-.type-tag.active {
-  background: #e8f5e9;
-  color: #07C160;
+/* ---- 提交 ---- */
+.submit-wrap {
+  padding: 20rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
 }
 
 .submit-btn {
-  margin: 20rpx 30rpx 40rpx;
-  height: 88rpx;
-  line-height: 88rpx;
-  background: #07C160;
-  color: #fff;
-  border-radius: 16rpx;
-  font-size: 32rpx;
+  width: 100%;
 }
 </style>
